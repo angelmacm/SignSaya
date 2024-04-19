@@ -18,6 +18,8 @@ dependencies: # Dependencies required for the package
   sqflite: ^2.0.0 # Sqflite dependency
   path: ^1.8.0 # Path dependency
   intl: ^0.17.0 # Intl dependency
+  path_provider: ^2.0.14
+
 
 dev_dependencies: # Development dependencies
   flutter_test: # Flutter test dependency
