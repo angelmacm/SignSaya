@@ -1,3 +1,6 @@
+// #define USE_SPI
+// #define USE_ICM
+
 /*
     DO NOT USE PINS IN THIS LIST
     0 = STRAPPING PIN FOR BOOT BUTTON
@@ -13,9 +16,16 @@
 */
 
 // GYRO SETUP
+#ifdef USE_SPI
+constexpr uint8_t SPI_SDI_PIN = 46;
+constexpr uint8_t SPI_SCK_PIN = 3;
+constexpr uint8_t SPI_CS_PIN = 21;
+constexpr uint8_t SPI_SDO_PIN = 14;
+#else
 constexpr uint8_t I2C_SDA_PIN = 46;
 constexpr uint8_t I2C_SCL_PIN = 3;
-constexpr uint8_t IMU_INTERRUPT = 17;
+#endif
+constexpr uint8_t IMU_INTERRUPT = 8;
 
 // FINGER PINS
 constexpr uint8_t PINKYPIN = 9;    //9
@@ -25,7 +35,7 @@ constexpr uint8_t INDEXPIN = 12;   //12
 constexpr uint8_t THUMBPIN = 13;   //13
 
 constexpr uint8_t HANDPIN = 7;  //14
-constexpr uint8_t bluetoothIndicator = 8;
+constexpr uint8_t bluetoothIndicator = 38;
 
 
 //freeRTOS VARIABLES
@@ -55,4 +65,3 @@ constexpr char bluetoothName[] = "SignSaya";
 bool isWireBegun = false;
 constexpr int arrayLength = fingerSamplingRate * 1;  //Length of array to be  averaged
 uint8_t maxFingerValue = 255;                        //max value of finger output for dataset
-#include "esp_log.h"

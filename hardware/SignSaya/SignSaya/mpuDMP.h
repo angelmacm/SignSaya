@@ -52,10 +52,8 @@
 #include "MPU6050_6Axis_MotionApps612.h"
 //#include "MPU6050.h" // not necessary if using MotionApps include file
 
-// Arduino Wire library is required if I2Cdev I2CDEV_ARDUINO_WIRE implementation
-// is used in I2Cdev.h
-#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-#include "Wire.h"
+#ifdef USE_SPI
+SPIClass* spiObj = NULL;
 #endif
 
 MPU6050 mpu;
@@ -99,14 +97,21 @@ class accelSensor {
 private:
   angleData_t angles;
 public:
-  void begin(const int SDA_PIN, const int SCL_PIN, const int INTERRUPT_PIN) {
-    // join I2C bus (I2Cdev library doesn't do this automatically)
-#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+#ifdef USE_SPI
+  void begin(const uint8_t SDI_PIN, const uint8_t SCK_PIN, const uint8_t SDO_PIN, const uint8_t CS_PIN, const uint8_t INTERRUPT_PIN) {
+    spiObj = new SPIClass(HSPI);
+    spiObj->begin(SCK_PIN, SDO_PIN, SDI_PIN, CS_PIN);
+    pinMode(spiObj->pinSS(), OUTPUT);
+    init(INTERRUPT_PIN);
+  }
+#else
+  void begin(const uint8_t SDA_PIN, const uint8_t SCL_PIN, const uint8_t INTERRUPT_PIN) {
     Wire.begin(46, 3);
     Wire.setClock(400000);  // 400kHz I2C clock. Comment this line if having compilation difficulties
-#elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
-    Fastwire::setup(400, true);
+    init(INTERRUPT_PIN);
+  }
 #endif
+  void init(uint8_t INTERRUPT_PIN) {
 
     // initialize serial communication
     // (115200 chosen because it is required for Teapot Demo output, but it's
@@ -124,7 +129,6 @@ public:
     // initialize device
     Serial.println(F("Initializing I2C devices..."));
     mpu.initialize();
-    pinMode(INTERRUPT_PIN, INPUT);
 
     // verify connection
     Serial.println(F("Testing device connections..."));
@@ -154,9 +158,7 @@ public:
 
       // enable Arduino interrupt detection
       Serial.print(F("Enabling interrupt detection (Arduino external interrupt "));
-      Serial.print(digitalPinToInterrupt(INTERRUPT_PIN));
       Serial.println(F(")..."));
-      attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), dmpDataReady, RISING);
       mpuIntStatus = mpu.getIntStatus();
 
       // set our DMP Ready flag so the main loop() function knows it's okay to use it

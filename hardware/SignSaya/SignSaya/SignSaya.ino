@@ -1,9 +1,22 @@
 //#include <Arduino.h>
-#include "types.h"
 #include "config.h"
+#include "types.h"
 #include "bleSetup.h"
-// #include "dmpIMU.h"
-#include "imutest.h"
+
+#ifdef USE_SPI
+#include <SPI.h>
+#else
+#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+#include "Wire.h"
+#endif
+#endif
+
+#ifdef USE_ICM
+#include "icmDMP.h"
+#else
+#include "mpuDMP.h"
+#endif
+
 #include "fingers.h"
 
 accelSensor ACCEL;
@@ -55,9 +68,22 @@ void accelGyroFunc(void *pvParameters);
 void dataParser(void *pvParameters);
 void bleSender(void *pvParameters);
 
+#ifndef USE_ICM
+// Interrupt Service Routine (ISR)
+void IRAM_ATTR sensorISR() {
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+  // Send notification to task (replace with specific notification value as needed)
+  vTaskNotifyGiveFromISR(imuTask, NULL);
+}
+#endif
 
 void setup() {
   pinMode(HANDPIN, INPUT);
+  pinMode(IMU_INTERRUPT, INPUT);
+#ifndef USE_ICM
+  attachInterrupt(digitalPinToInterrupt(IMU_INTERRUPT), sensorISR, RISING);
+#endif
   Serial.begin(115200);
   while (!Serial) {
     delay(10);
@@ -75,9 +101,14 @@ void setup() {
   char uBlCharArray[UBluetoothName.length() + 1];
   UBluetoothName.toCharArray(uBlCharArray, UBluetoothName.length() + 1);
   ble.begin(uBlCharArray);
-  ACCEL.begin(I2C_SDA_PIN, I2C_SCL_PIN, IMU_INTERRUPT);
 
-  // attachInterrupt(digitalPinToInterrupt(IMU_INTERRUPT), sensorISR, RISING);
+#ifdef USE_SPI
+  ACCEL.begin(SPI_SDI_PIN, SPI_SCK_PIN, SPI_SDO_PIN, SPI_CS_PIN, IMU_INTERRUPT);
+#else
+  ACCEL.begin(I2C_SDA_PIN, I2C_SCL_PIN, IMU_INTERRUPT);
+#endif
+
+
 
   pinkyQueue = xQueueCreate(fingerQueueLength, sizeof(uint8_t));
   ringQueue = xQueueCreate(fingerQueueLength, sizeof(uint8_t));
@@ -113,9 +144,7 @@ void bleChecker(void *pvParameters) {
       xTaskCreatePinnedToCore(&middleFingerFunc, "middleFunc", fingerStackSize, NULL, fingerPriority, &middleTask, APPCORE);
       xTaskCreatePinnedToCore(&indexFingerFunc, "indexFunc", fingerStackSize, NULL, fingerPriority, &indexTask, APPCORE);
       xTaskCreatePinnedToCore(&thumbFingerFunc, "thumbFunc", fingerStackSize, NULL, fingerPriority, &thumbTask, APPCORE);
-
       xTaskCreatePinnedToCore(&accelGyroFunc, "mpuFunc", mpuStackSize, NULL, 10, &imuTask, APPCORE);
-      // xTaskCreatePinnedToCore(&checkIMUData, "mpuChecker", 1024, NULL, accelPriority, &imuChecker, APPCORE);
 
       xTaskCreatePinnedToCore(&dataParser, "dataPreparation", 10240, NULL, blePriority, &parserTask, SYSTEMCORE);
       xTaskCreatePinnedToCore(&bleSender, "dataTransmission", 10240, NULL, blePriority, &senderTask, SYSTEMCORE);
@@ -131,6 +160,7 @@ void bleSender(void *pvParameters) {
   handData_t message;
   for (;;) {
     if ((int)xQueueReceive(handQueue, &message, 0) == pdTRUE) {
+#ifdef USE_ICM
       uint8_t sendData[] = { message.pinky,
                              message.ring,
                              message.middle,
@@ -140,6 +170,16 @@ void bleSender(void *pvParameters) {
                              message.angles.q1,
                              message.angles.q2,
                              message.angles.q3 };
+#else
+      uint8_t sendData[] = { message.pinky,
+                             message.ring,
+                             message.middle,
+                             message.index,
+                             message.thumb,
+                             message.angles.angleX,
+                             message.angles.angleY,
+                             message.angles.angleZ };
+#endif
       ble.write(sendData);
     }
     vTaskDelay(pdMS_TO_TICKS(1));
@@ -168,29 +208,24 @@ void dataParser(void *pvParameters) {
   }
 }
 
-// void checkIMUData(void *pvParameters) {
-//   for (;;) {
-//     if (ACCEL.checkDataReady()) {
-//       xTaskNotifyGive(imuTask);
-//     } else {
-//       vTaskDelay(pdMS_TO_TICKS(10));
-//     }
-//   }
-// }
-
 void accelGyroFunc(void *pvParameters) {
-  uint32_t notificationValue;
-  int ctr = 0;
+
+#ifdef USE_ICM
   quaternion_t imuData;
+#else
+  uint32_t notificationValue;
+  angleData_t imuData;
+#endif
   bool ledState = false;
   lastIMUrun = millis();
   for (;;) {
 
-    // ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+#ifdef USE_ICM
 
     if (millis() - lastIMUrun >= 200) {
       Serial.println("Resetting FIFO");
       ACCEL.resetFIFO();
+      lastIMUrun = millis();
     } else {
       while (ACCEL.checkDataReady()) {
       }
@@ -202,6 +237,18 @@ void accelGyroFunc(void *pvParameters) {
     }
 
     vTaskDelay(pdMS_TO_TICKS(10));
+
+#else
+
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+    imuData = ACCEL.getData();
+    if (xQueueSend(IMUQueue, &imuData, pdMS_TO_TICKS(IMUQueueWait)) != pdPASS) {
+      missedIMUData++;
+      // ESP_LOGD("Missed Gyro Data", "%f, %f", imuData.angleX, imuData.angleY);
+    }
+
+#endif
   }
 }
 

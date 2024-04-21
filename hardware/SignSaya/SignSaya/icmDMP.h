@@ -1,19 +1,34 @@
 #include "ICM_20948.h"  // Click here to get the library: http://librarymanager/All#SparkFun_ICM_20948_IMU
 
-#define WIRE_PORT Wire  // Your desired Wire port.      Used when "USE_SPI" is not defined
-
 bool AD0_VAL = 0;
 
+#ifdef USE_SPI
+ICM_20948_SPI myICM;  // If using SPI create an ICM_20948_SPI object
+SPIClass * spiObj = NULL;
+#else
 ICM_20948_I2C myICM;  // Otherwise create an ICM_20948_I2C object
+#endif
 
 class accelSensor {
 private:
   quaternion_t results;
 
 public:
-  void begin(const int SDA_PIN, const int SCL_PIN, const int INTERRUPT_PIN) {
-    Wire.begin(SDA_PIN, SCL_PIN);
-    Wire.setClock(400000);
+#ifdef USE_SPI
+  void begin(const uint8_t SDI_PIN, const uint8_t SCK_PIN, const uint8_t SDO_PIN, const uint8_t CS_PIN, const uint8_t INTERRUPT_PIN) {
+    spiObj = new SPIClass(HSPI);
+    spiObj->begin(SCK_PIN, SDO_PIN, SDI_PIN, CS_PIN);
+    pinMode(spiObj->pinSS(), OUTPUT);
+    init();
+  }
+#else
+  void begin(const uint8_t SDA_PIN, const uint8_t SCL_PIN, const uint8_t INTERRUPT_PIN) {
+    Wire.begin(46, 3);
+    Wire.setClock(400000);  // 400kHz I2C clock. Comment this line if having compilation difficulties
+    init();
+  }
+#endif
+  void init() {
     myICM.enableDebugging();  // Uncomment this line to enable helpful debug messages on Serial
 
     bool initialized = false;
@@ -21,8 +36,12 @@ public:
 
       // Initialize the ICM-20948
       // If the DMP is enabled, .begin performs a minimal startup. We need to configure the sample mode etc. manually.
+#ifdef USE_SPI
+      myICM.begin(SPI_CS_PIN, SPI);
+#else
+      myICM.begin(Wire, AD0_VAL);
+#endif
 
-      myICM.begin(WIRE_PORT, AD0_VAL);
 
       Serial.print(F("Initialization of the sensor returned: "));
       Serial.println(myICM.statusString());
@@ -106,9 +125,7 @@ public:
 
     // Check success
     if (success) {
-#ifndef QUAT_ANIMATION
       Serial.println(F("DMP enabled!"));
-#endif
     } else {
       Serial.println(F("Enable DMP failed!"));
       Serial.println(F("Please check that you have uncommented line 29 (#define ICM_20948_USE_DMP) in ICM_20948_C.h..."));
@@ -121,7 +138,7 @@ public:
     return ((myICM.status == ICM_20948_Stat_Ok) || (myICM.status == ICM_20948_Stat_FIFOMoreDataAvail));
   }
 
-  void resetFIFO(){
+  void resetFIFO() {
     myICM.resetFIFO();
   }
 
@@ -154,7 +171,7 @@ public:
       Serial.print(q3);
       Serial.print(", ");
       Serial.println(q0);
-      
+
       // myICM.resetFIFO();
       return results;
     }

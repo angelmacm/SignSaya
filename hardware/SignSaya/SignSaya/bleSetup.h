@@ -94,12 +94,13 @@ public:
 
   void write(uint8_t* message) {
     long startTime = micros();
-    // uint8_t data[sizeof(float) * length];
-    // memcpy(data, message, sizeof(data));
 
-    pTxCharacteristic->setValue(message, sizeof(uint8_t)*8);
+#ifdef USE_ICM
+    pTxCharacteristic->setValue(message, sizeof(uint8_t) * 9);
+#else
+    pTxCharacteristic->setValue(message, sizeof(uint8_t) * 8);
+#endif
     pTxCharacteristic->notify();
-    ESP_LOGV("BLE WRITE TIME", "%d micros", (micros() - startTime));
   }
 
   bool isConnected() {
