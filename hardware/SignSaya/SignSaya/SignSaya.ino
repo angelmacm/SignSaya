@@ -29,6 +29,13 @@ QueueHandle_t IMUQueue;
 
 TaskHandle_t imuTask;
 TaskHandle_t imuChecker;
+TaskHandle_t pinkyTask;
+TaskHandle_t ringTask;
+TaskHandle_t middleTask;
+TaskHandle_t indexTask;
+TaskHandle_t thumbTask;
+TaskHandle_t senderTask;
+TaskHandle_t parserTask;
 
 int missedIMUData = 0;
 
@@ -36,6 +43,8 @@ long lastCountdown = 0;
 
 uint8_t core1Tel = 0;
 uint8_t core0Tel = 0;
+
+volatile unsigned long lastIMUrun = millis();
 
 void pinkyFingerFunc(void *pvParameters);
 void ringFingerFunc(void *pvParameters);
@@ -45,6 +54,7 @@ void thumbFingerFunc(void *pvParameters);
 void accelGyroFunc(void *pvParameters);
 void dataParser(void *pvParameters);
 void bleSender(void *pvParameters);
+
 
 void setup() {
   pinMode(HANDPIN, INPUT);
@@ -78,17 +88,7 @@ void setup() {
   handQueue = xQueueCreate(handQueueLength, sizeof(handData_t));
   IMUQueue = xQueueCreate(IMUQueueLength, sizeof(uint16_t));
 
-  xTaskCreatePinnedToCore(&pinkyFingerFunc, "pinkyFunc", fingerStackSize, NULL, fingerPriority, NULL, APPCORE);
-  xTaskCreatePinnedToCore(&ringFingerFunc, "ringFunc", fingerStackSize, NULL, fingerPriority, NULL, APPCORE);
-  xTaskCreatePinnedToCore(&middleFingerFunc, "middleFunc", fingerStackSize, NULL, fingerPriority, NULL, APPCORE);
-  xTaskCreatePinnedToCore(&indexFingerFunc, "indexFunc", fingerStackSize, NULL, fingerPriority, NULL, APPCORE);
-  xTaskCreatePinnedToCore(&thumbFingerFunc, "thumbFunc", fingerStackSize, NULL, fingerPriority, NULL, APPCORE);
-
-  xTaskCreatePinnedToCore(&accelGyroFunc, "mpuFunc", mpuStackSize, NULL, accelPriority, &imuTask, APPCORE);
-  xTaskCreatePinnedToCore(&checkIMUData, "mpuChecker", 1024, NULL, accelPriority, &imuChecker, APPCORE);
-
-  xTaskCreatePinnedToCore(&dataParser, "dataPreparation", 10240, NULL, blePriority, NULL, SYSTEMCORE);
-  xTaskCreatePinnedToCore(&bleSender, "dataTransmission", 10240, NULL, blePriority, NULL, SYSTEMCORE);
+  xTaskCreatePinnedToCore(&bleChecker, "bleBoss", 10240, NULL, 1, NULL, SYSTEMCORE);
   xTaskCreatePinnedToCore(&telPrint, "telPrint", 10240, NULL, 1, NULL, SYSTEMCORE);
 
   xTaskCreatePinnedToCore(&telemetryCore1, "telemetry1", 2048, NULL, 0, NULL, 1);
@@ -101,6 +101,31 @@ void loop() {
 /*--------------------------------------------------*/
 /*---------------------- Tasks ---------------------*/
 /*--------------------------------------------------*/
+
+void bleChecker(void *pvParameters) {
+  bool initializedTasks = false;
+  Serial.println("No devices connected... waiting to connect to run tasks");
+  for (;;) {
+    if (ble.isConnected() && !initializedTasks) {
+      Serial.println("Running Tasks");
+      xTaskCreatePinnedToCore(&pinkyFingerFunc, "pinkyFunc", fingerStackSize, NULL, fingerPriority, &pinkyTask, APPCORE);
+      xTaskCreatePinnedToCore(&ringFingerFunc, "ringFunc", fingerStackSize, NULL, fingerPriority, &ringTask, APPCORE);
+      xTaskCreatePinnedToCore(&middleFingerFunc, "middleFunc", fingerStackSize, NULL, fingerPriority, &middleTask, APPCORE);
+      xTaskCreatePinnedToCore(&indexFingerFunc, "indexFunc", fingerStackSize, NULL, fingerPriority, &indexTask, APPCORE);
+      xTaskCreatePinnedToCore(&thumbFingerFunc, "thumbFunc", fingerStackSize, NULL, fingerPriority, &thumbTask, APPCORE);
+
+      xTaskCreatePinnedToCore(&accelGyroFunc, "mpuFunc", mpuStackSize, NULL, 10, &imuTask, APPCORE);
+      // xTaskCreatePinnedToCore(&checkIMUData, "mpuChecker", 1024, NULL, accelPriority, &imuChecker, APPCORE);
+
+      xTaskCreatePinnedToCore(&dataParser, "dataPreparation", 10240, NULL, blePriority, &parserTask, SYSTEMCORE);
+      xTaskCreatePinnedToCore(&bleSender, "dataTransmission", 10240, NULL, blePriority, &senderTask, SYSTEMCORE);
+      initializedTasks = true;
+      Serial.println("Tasks successfuly ran");
+    } else {
+      vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+  }
+}
 
 void bleSender(void *pvParameters) {
   handData_t message;
@@ -143,30 +168,40 @@ void dataParser(void *pvParameters) {
   }
 }
 
-void checkIMUData(void *pvParameters) {
-  for (;;) {
-    if (ACCEL.checkDataReady()) {
-      xTaskNotifyGive(imuTask);
-      ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-    } else {
-      vTaskDelay(pdMS_TO_TICKS(10));
-    }
-  }
-}
+// void checkIMUData(void *pvParameters) {
+//   for (;;) {
+//     if (ACCEL.checkDataReady()) {
+//       xTaskNotifyGive(imuTask);
+//     } else {
+//       vTaskDelay(pdMS_TO_TICKS(10));
+//     }
+//   }
+// }
 
 void accelGyroFunc(void *pvParameters) {
   uint32_t notificationValue;
   int ctr = 0;
   quaternion_t imuData;
+  bool ledState = false;
+  lastIMUrun = millis();
   for (;;) {
 
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    // ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-    imuData = ACCEL.getData();
-    if (xQueueSend(IMUQueue, &imuData, pdMS_TO_TICKS(IMUQueueWait)) != pdPASS) {
-      missedIMUData++;
+    if (millis() - lastIMUrun >= 200) {
+      Serial.println("Resetting FIFO");
+      ACCEL.resetFIFO();
+    } else {
+      while (ACCEL.checkDataReady()) {
+      }
+      imuData = ACCEL.getData();
+      if (xQueueSend(IMUQueue, &imuData, pdMS_TO_TICKS(IMUQueueWait)) != pdPASS) {
+        missedIMUData++;
+      }
+      lastIMUrun = millis();
     }
-    xTaskNotifyGive(imuChecker);
+
+    vTaskDelay(pdMS_TO_TICKS(10));
   }
 }
 
@@ -256,6 +291,7 @@ void telemetryCore1(void *pvParameters) {
 }
 
 void telPrint(void *pvParameters) {
+  bool ledState = false;
   for (;;) {
     Serial.print("SYSTEMCORE: ");
     Serial.print(core0Tel);
@@ -263,6 +299,15 @@ void telPrint(void *pvParameters) {
     Serial.print(core1Tel);
     Serial.print("  Free Memory: ");
     Serial.println(esp_get_free_heap_size());
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    digitalWrite(bluetoothIndicator, ledState);
+    ledState = !ledState;
+    vTaskDelay(pdMS_TO_TICKS(500));
+    // for (int index = 0; index < 255; index++) {
+    //   analogWrite(bluetoothIndicator, index);
+    //   vTaskDelay(pdMS_TO_TICKS(2));
+    // }
+    // for (int index = 255; index > 0; index--) {
+    //   analogWrite(bluetoothIndicator, index);
+    //   vTaskDelay(pdMS_TO_TICKS(2));
   }
 }

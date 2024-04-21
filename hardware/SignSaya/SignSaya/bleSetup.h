@@ -34,19 +34,18 @@ private:
 
 public:
   bleInstance() {
-
   }
 
-  void begin(std::string bleName){
+  void begin(std::string bleName) {
     pinMode(bluetoothIndicator, OUTPUT);
     Serial.println("Starting Bluetooth Low Energy");
     // Initialize NVS
-esp_err_t ret = nvs_flash_init();
-if ((ret == ESP_ERR_NVS_NO_FREE_PAGES) || (ret == ESP_ERR_NVS_NEW_VERSION_FOUND)) {
-  ESP_ERROR_CHECK(nvs_flash_erase());
-  ret = nvs_flash_init();
-}
-ESP_ERROR_CHECK(ret);
+    esp_err_t ret = nvs_flash_init();
+    if ((ret == ESP_ERR_NVS_NO_FREE_PAGES) || (ret == ESP_ERR_NVS_NEW_VERSION_FOUND)) {
+      ESP_ERROR_CHECK(nvs_flash_erase());
+      ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
 
     //BLEDevice::setMTU(64);
     BLEDevice::init(bleName);
@@ -101,5 +100,9 @@ ESP_ERROR_CHECK(ret);
     pTxCharacteristic->setValue(message, sizeof(uint8_t)*8);
     pTxCharacteristic->notify();
     ESP_LOGV("BLE WRITE TIME", "%d micros", (micros() - startTime));
+  }
+
+  bool isConnected() {
+    return deviceConnected;
   }
 };
