@@ -38,7 +38,9 @@ public:
 
   void begin(std::string bleName) {
     pinMode(bluetoothIndicator, OUTPUT);
+#ifdef USE_LOGGING
     Serial.println("Starting Bluetooth Low Energy");
+#endif
     // Initialize NVS
     esp_err_t ret = nvs_flash_init();
     if ((ret == ESP_ERR_NVS_NO_FREE_PAGES) || (ret == ESP_ERR_NVS_NEW_VERSION_FOUND)) {
@@ -86,9 +88,9 @@ public:
     //pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
     pAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
     pAdvertising->setMinPreferred(0x12);
-
+#ifdef USE_LOGGING
     Serial.println("Starting Bluetooth Advertising");
-
+#endif
     BLEDevice::startAdvertising();
   }
 

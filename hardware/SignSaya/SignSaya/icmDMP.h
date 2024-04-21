@@ -4,7 +4,7 @@ bool AD0_VAL = 0;
 
 #ifdef USE_SPI
 ICM_20948_SPI myICM;  // If using SPI create an ICM_20948_SPI object
-SPIClass * spiObj = NULL;
+SPIClass* spiObj = NULL;
 #else
 ICM_20948_I2C myICM;  // Otherwise create an ICM_20948_I2C object
 #endif
@@ -29,8 +29,9 @@ public:
   }
 #endif
   void init() {
+#ifdef USE_LOGGING
     myICM.enableDebugging();  // Uncomment this line to enable helpful debug messages on Serial
-
+#endif
     bool initialized = false;
     while (!initialized) {
 
@@ -42,12 +43,14 @@ public:
       myICM.begin(Wire, AD0_VAL);
 #endif
 
-
+#ifdef USE_LOGGING
       Serial.print(F("Initialization of the sensor returned: "));
       Serial.println(myICM.statusString());
-
+#endif
       if (myICM.status != ICM_20948_Stat_Ok) {
+#ifdef USE_LOGGING
         Serial.println(F("Trying again..."));
+#endif
         AD0_VAL = !AD0_VAL;
         delay(10);
       } else {
@@ -59,10 +62,10 @@ public:
 
     // Initialize the DMP. initializeDMP is a weak function. You can overwrite it if you want to e.g. to change the sample rate
     success &= (myICM.initializeDMP() == ICM_20948_Stat_Ok);
-
+#ifdef USE_LOGGING
     Serial.print("initializeDMP: ");
     Serial.println(success);
-
+#endif
     // DMP sensor options are defined in ICM_20948_DMP.h
     //    INV_ICM20948_SENSOR_ACCELEROMETER               (16-bit accel)
     //    INV_ICM20948_SENSOR_GYROSCOPE                   (16-bit gyro + 32-bit calibrated gyro)
@@ -82,8 +85,6 @@ public:
 
     // Enable the DMP orientation sensor
     success &= (myICM.enableDMPSensor(INV_ICM20948_SENSOR_ORIENTATION) == ICM_20948_Stat_Ok);
-    Serial.print("enableDMPSensor: ");
-    Serial.println(success);
     // Enable any additional sensors / features
     //success &= (myICM.enableDMPSensor(INV_ICM20948_SENSOR_RAW_GYROSCOPE) == ICM_20948_Stat_Ok);
     //success &= (myICM.enableDMPSensor(INV_ICM20948_SENSOR_RAW_ACCELEROMETER) == ICM_20948_Stat_Ok);
@@ -100,29 +101,20 @@ public:
     //success &= (myICM.setDMPODRrate(DMP_ODR_Reg_Gyro_Calibr, 0) == ICM_20948_Stat_Ok); // Set to the maximum
     //success &= (myICM.setDMPODRrate(DMP_ODR_Reg_Cpass, 0) == ICM_20948_Stat_Ok); // Set to the maximum
     //success &= (myICM.setDMPODRrate(DMP_ODR_Reg_Cpass_Calibr, 0) == ICM_20948_Stat_Ok); // Set to the maximum
-    Serial.print("setDMPODRrate: ");
-    Serial.println(success);
 
     // Enable the FIFO
     success &= (myICM.enableFIFO() == ICM_20948_Stat_Ok);
-    Serial.print("enableFIFO: ");
-    Serial.println(success);
 
     // Enable the DMP
     success &= (myICM.enableDMP() == ICM_20948_Stat_Ok);
-    Serial.print("enableDMP: ");
-    Serial.println(success);
 
     // Reset DMP
     success &= (myICM.resetDMP() == ICM_20948_Stat_Ok);
-    Serial.print("resetDMP: ");
-    Serial.println(success);
 
     // Reset FIFO
     success &= (myICM.resetFIFO() == ICM_20948_Stat_Ok);
-    Serial.print("resetFIFO: ");
-    Serial.println(success);
 
+#ifdef USE_LOGGING
     // Check success
     if (success) {
       Serial.println(F("DMP enabled!"));
@@ -132,6 +124,11 @@ public:
       while (1)
         ;  // Do nothing more
     }
+#else
+    if (!success) {
+      while (1)
+    }
+#endif
   }
 
   bool checkDataReady() {
@@ -164,6 +161,7 @@ public:
       results.q1 = map(q1, -1.0, 1, 0, 255);
       results.q2 = map(q2, -1.0, 1, 0, 255);
       results.q3 = map(q3, -1.0, 1, 0, 255);
+#ifdef USE_LOGGING
       Serial.print(q1);
       Serial.print(", ");
       Serial.print(q2);
@@ -171,6 +169,7 @@ public:
       Serial.print(q3);
       Serial.print(", ");
       Serial.println(q0);
+#endif
 
       // myICM.resetFIFO();
       return results;

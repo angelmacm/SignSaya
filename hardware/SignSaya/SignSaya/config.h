@@ -1,5 +1,6 @@
-// #define USE_SPI
-// #define USE_ICM
+// #define USE_SPI // 11.9kb Smaller than I2C
+// #define USE_ICM // 6.9kb bigger than MPU6050
+// #define USE_LOGGING // 2.8kb bigger than with no logging
 
 /*
     DO NOT USE PINS IN THIS LIST

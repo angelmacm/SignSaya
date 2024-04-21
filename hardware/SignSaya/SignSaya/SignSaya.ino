@@ -84,10 +84,12 @@ void setup() {
 #ifndef USE_ICM
   attachInterrupt(digitalPinToInterrupt(IMU_INTERRUPT), sensorISR, RISING);
 #endif
+#ifdef USE_LOGGING
   Serial.begin(115200);
   while (!Serial) {
     delay(10);
   };
+#endif
   String handSide;
   int randNumber = random(100000);
   String UBluetoothName = bluetoothName;
@@ -108,8 +110,6 @@ void setup() {
   ACCEL.begin(I2C_SDA_PIN, I2C_SCL_PIN, IMU_INTERRUPT);
 #endif
 
-
-
   pinkyQueue = xQueueCreate(fingerQueueLength, sizeof(uint8_t));
   ringQueue = xQueueCreate(fingerQueueLength, sizeof(uint8_t));
   middleQueue = xQueueCreate(fingerQueueLength, sizeof(uint8_t));
@@ -120,10 +120,12 @@ void setup() {
   IMUQueue = xQueueCreate(IMUQueueLength, sizeof(uint16_t));
 
   xTaskCreatePinnedToCore(&bleChecker, "bleBoss", 10240, NULL, 1, NULL, SYSTEMCORE);
+#ifdef USE_LOGGING
   xTaskCreatePinnedToCore(&telPrint, "telPrint", 10240, NULL, 1, NULL, SYSTEMCORE);
 
   xTaskCreatePinnedToCore(&telemetryCore1, "telemetry1", 2048, NULL, 0, NULL, 1);
   xTaskCreatePinnedToCore(&telemetryCore0, "telemetry0", 2048, NULL, 0, NULL, 0);
+#endif
 }
 
 void loop() {
@@ -135,7 +137,9 @@ void loop() {
 
 void bleChecker(void *pvParameters) {
   bool initializedTasks = false;
+#ifdef USE_LOGGING
   Serial.println("No devices connected... waiting to connect to run tasks");
+#endif
   for (;;) {
     if (ble.isConnected() && !initializedTasks) {
       Serial.println("Running Tasks");
@@ -149,7 +153,9 @@ void bleChecker(void *pvParameters) {
       xTaskCreatePinnedToCore(&dataParser, "dataPreparation", 10240, NULL, blePriority, &parserTask, SYSTEMCORE);
       xTaskCreatePinnedToCore(&bleSender, "dataTransmission", 10240, NULL, blePriority, &senderTask, SYSTEMCORE);
       initializedTasks = true;
+#ifdef USE_LOGGING
       Serial.println("Tasks successfuly ran");
+#endif
     } else {
       vTaskDelay(pdMS_TO_TICKS(1000));
     }
@@ -223,7 +229,9 @@ void accelGyroFunc(void *pvParameters) {
 #ifdef USE_ICM
 
     if (millis() - lastIMUrun >= 200) {
+#ifdef USE_LOGGING
       Serial.println("Resetting FIFO");
+#endif
       ACCEL.resetFIFO();
       lastIMUrun = millis();
     } else {
@@ -301,7 +309,7 @@ void thumbFingerFunc(void *pvParameters) {
     vTaskDelay(pdMS_TO_TICKS(1000 / fingerSamplingRate));
   }
 }
-
+#ifdef USE_LOGGING
 void telemetryCore0(void *pvParameters) {
   Serial.println("Core 0: Telemetry Setup");
   long lastRun = millis();
@@ -358,3 +366,4 @@ void telPrint(void *pvParameters) {
     //   vTaskDelay(pdMS_TO_TICKS(2));
   }
 }
+#endif
