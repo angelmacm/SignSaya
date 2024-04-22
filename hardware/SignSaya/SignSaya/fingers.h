@@ -1,7 +1,8 @@
 class FingerInstance {
 private:
   // For increased precision consider using uint16_t instead to fit entire ADC range
-  uint16_t fingerArray[fingerSamplingRate * arrayLength];
+  uint16_t fingerArray[FINGER_SAMPLING_RATE * MA_TIME_SPAN];
+  uint8_t arrayLength = FINGER_SAMPLING_RATE * MA_TIME_SPAN;
   uint16_t minInputValue = 0;
   uint16_t maxInputValue = 4095;
   uint8_t pinNumber;

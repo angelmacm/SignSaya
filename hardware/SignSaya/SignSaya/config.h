@@ -29,14 +29,14 @@
 #define IMU_INTERRUPT 8
 
 // FINGER PINS
-#define PINKYPIN 9
-#define RINGPIN 10
-#define MIDDLEPIN 11
-#define INDEXPIN 12
-#define THUMBPIN 13
+#define PINKY_PIN 9
+#define RING_PIN 10
+#define MIDDLE_PIN 11
+#define INDEX_PIN 12
+#define THUMB_PIN 13
 
-#define HANDPIN 7
-#define bluetoothIndicator 38
+#define HAND_PIN 7
+#define BLUETOOTH_INDICATOR 38
 
 
 //freeRTOS VARIABLES
@@ -49,19 +49,18 @@ constexpr uint8_t fingerQueueWait = 1;
 constexpr uint16_t fingerStackSize = 1280;
 constexpr uint16_t mpuStackSize = 2560;
 
-#define fingerPriority 1
-#define accelPriority 3
-#define blePriority 4
+#define FINGER_PRIORITY 1
+#define ACCEL_PRIORITY 3
+#define BLE_PRIORITY 4
 
 #define APPCORE 1
 #define SYSTEMCORE 0
 
-#define fingerSamplingRate 60  // hz, MAXIMUM ONLY, DOES NOT GUARRANTEE ACTUAL SAMPLING RATE DUE TO freeRTOS
-#define IMUSamplingRate 200    // hz, MAXIMUM ONLY, DOES NOT GUARRANTEE ACTUAL SAMPLING RATE DUE TO freeRTOS
+#define FINGER_SAMPLING_RATE 60  // hz, MAXIMUM ONLY, DOES NOT GUARRANTEE ACTUAL SAMPLING RATE DUE TO freeRTOS
 
 // BLUETOOTH VARIABLES
 constexpr char bluetoothName[] = "SignSaya";
 
 // OTHER VARIABLES
-#define arrayLength 1          // Time in seconds that spans the MA Filter
+#define MA_TIME_SPAN 1          // Time in seconds that spans the MA Filter
 uint8_t maxFingerValue = 255;  //max value of finger output for dataset
