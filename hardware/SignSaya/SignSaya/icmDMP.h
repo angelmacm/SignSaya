@@ -127,6 +127,7 @@ public:
 #else
     if (!success) {
       while (1)
+        ;
     }
 #endif
   }

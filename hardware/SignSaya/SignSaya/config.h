@@ -1,4 +1,4 @@
-// #define USE_SPI // 11.9kb Smaller than I2C
+// #define USE_SPI // 2.8kb Smaller than I2C / 
 // #define USE_ICM // 6.9kb bigger than MPU6050
 // #define USE_LOGGING // 2.8kb bigger than with no logging
 
@@ -40,14 +40,14 @@
 
 
 //freeRTOS VARIABLES
-constexpr uint8_t fingerQueueLength = 10;
-constexpr uint8_t handQueueLength = 15;
-constexpr uint8_t IMUQueueLength = 15;
-constexpr uint8_t IMUQueueWait = 1;
-constexpr uint8_t fingerQueueWait = 1;
+#define FINGER_QUEUE_LENGTH 10
+#define HAND_QUEUE_LENGTH 15
+#define IMU_QUEUE_LENGTH 15
+#define IMU_QUEUE_WAIT 1
+#define FINGER_QUEUE_WAIT 1
 
-constexpr uint16_t fingerStackSize = 1280;
-constexpr uint16_t mpuStackSize = 2560;
+#define FINGER_STACK_SIZE 1280
+#define MPU_STACK_SIZE 2560
 
 #define FINGER_PRIORITY 1
 #define ACCEL_PRIORITY 3

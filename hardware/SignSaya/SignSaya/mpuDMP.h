@@ -44,17 +44,17 @@
   THE SOFTWARE.
   ===============================================
 */
-
+#ifdef USE_SPI
+SPIClass* spiObj = NULL;
+#else
 // I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
 // for both classes must be in the include path of your project
 #include "I2Cdev.h"
-
+#endif
 #include "MPU6050_6Axis_MotionApps612.h"
 //#include "MPU6050.h" // not necessary if using MotionApps include file
 
-#ifdef USE_SPI
-SPIClass* spiObj = NULL;
-#endif
+
 
 MPU6050 mpu;
 bool blinkState = false;

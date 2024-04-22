@@ -116,14 +116,14 @@ void setup() {
   ACCEL.begin(I2C_SDA_PIN, I2C_SCL_PIN, IMU_INTERRUPT);
 #endif
 
-  pinkyQueue = xQueueCreate(fingerQueueLength, sizeof(uint8_t));
-  ringQueue = xQueueCreate(fingerQueueLength, sizeof(uint8_t));
-  middleQueue = xQueueCreate(fingerQueueLength, sizeof(uint8_t));
-  indexQueue = xQueueCreate(fingerQueueLength, sizeof(uint8_t));
-  thumbQueue = xQueueCreate(fingerQueueLength, sizeof(uint8_t));
+  pinkyQueue = xQueueCreate(FINGER_QUEUE_LENGTH, sizeof(uint8_t));
+  ringQueue = xQueueCreate(FINGER_QUEUE_LENGTH, sizeof(uint8_t));
+  middleQueue = xQueueCreate(FINGER_QUEUE_LENGTH, sizeof(uint8_t));
+  indexQueue = xQueueCreate(FINGER_QUEUE_LENGTH, sizeof(uint8_t));
+  thumbQueue = xQueueCreate(FINGER_QUEUE_LENGTH, sizeof(uint8_t));
 
-  handQueue = xQueueCreate(handQueueLength, sizeof(handData_t));
-  IMUQueue = xQueueCreate(IMUQueueLength, sizeof(uint16_t));
+  handQueue = xQueueCreate(HAND_QUEUE_LENGTH, sizeof(handData_t));
+  IMUQueue = xQueueCreate(IMU_QUEUE_LENGTH, sizeof(uint16_t));
 
   xTaskCreatePinnedToCore(&bleChecker, "bleBoss", 10240, NULL, 1, NULL, SYSTEMCORE);
 #ifdef USE_LOGGING
@@ -160,12 +160,12 @@ void bleChecker(void *pvParameters) {
 
         // if not yet intialized, create the tasks
 
-        xTaskCreatePinnedToCore(&pinkyFingerFunc, "pinkyFunc", fingerStackSize, NULL, FINGER_PRIORITY, &pinkyTask, APPCORE);
-        xTaskCreatePinnedToCore(&ringFingerFunc, "ringFunc", fingerStackSize, NULL, FINGER_PRIORITY, &ringTask, APPCORE);
-        xTaskCreatePinnedToCore(&middleFingerFunc, "middleFunc", fingerStackSize, NULL, FINGER_PRIORITY, &middleTask, APPCORE);
-        xTaskCreatePinnedToCore(&indexFingerFunc, "indexFunc", fingerStackSize, NULL, FINGER_PRIORITY, &indexTask, APPCORE);
-        xTaskCreatePinnedToCore(&thumbFingerFunc, "thumbFunc", fingerStackSize, NULL, FINGER_PRIORITY, &thumbTask, APPCORE);
-        xTaskCreatePinnedToCore(&accelGyroFunc, "mpuFunc", mpuStackSize, NULL, ACCEL_PRIORITY, &imuTask, APPCORE);
+        xTaskCreatePinnedToCore(&pinkyFingerFunc, "pinkyFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &pinkyTask, APPCORE);
+        xTaskCreatePinnedToCore(&ringFingerFunc, "ringFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &ringTask, APPCORE);
+        xTaskCreatePinnedToCore(&middleFingerFunc, "middleFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &middleTask, APPCORE);
+        xTaskCreatePinnedToCore(&indexFingerFunc, "indexFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &indexTask, APPCORE);
+        xTaskCreatePinnedToCore(&thumbFingerFunc, "thumbFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &thumbTask, APPCORE);
+        xTaskCreatePinnedToCore(&accelGyroFunc, "mpuFunc", MPU_STACK_SIZE, NULL, ACCEL_PRIORITY, &imuTask, APPCORE);
 
         xTaskCreatePinnedToCore(&dataParser, "dataPreparation", 10240, NULL, BLE_PRIORITY, &parserTask, SYSTEMCORE);
         xTaskCreatePinnedToCore(&bleSender, "dataTransmission", 10240, NULL, BLE_PRIORITY, &senderTask, SYSTEMCORE);
@@ -224,14 +224,14 @@ void dataParser(void *pvParameters) {
   for (;;) {
     // unsigned long start = micros();
     //Receive data from gloves queue
-    int pinkyStatus = xQueueReceive(pinkyQueue, &machineData.pinky, fingerQueueWait);
-    int ringStatus = xQueueReceive(ringQueue, &machineData.ring, fingerQueueWait);
-    int middleStatus = xQueueReceive(middleQueue, &machineData.middle, fingerQueueWait);
-    int indexStatus = xQueueReceive(indexQueue, &machineData.index, fingerQueueWait);
-    int thumbStatus = xQueueReceive(thumbQueue, &machineData.thumb, fingerQueueWait);
-    int accelStatus = xQueueReceive(IMUQueue, &machineData.angles, IMUQueueWait);
+    int pinkyStatus = xQueueReceive(pinkyQueue, &machineData.pinky, FINGER_QUEUE_WAIT);
+    int ringStatus = xQueueReceive(ringQueue, &machineData.ring, FINGER_QUEUE_WAIT);
+    int middleStatus = xQueueReceive(middleQueue, &machineData.middle, FINGER_QUEUE_WAIT);
+    int indexStatus = xQueueReceive(indexQueue, &machineData.index, FINGER_QUEUE_WAIT);
+    int thumbStatus = xQueueReceive(thumbQueue, &machineData.thumb, FINGER_QUEUE_WAIT);
+    int accelStatus = xQueueReceive(IMUQueue, &machineData.angles, IMU_QUEUE_WAIT);
     if ((pinkyStatus == pdTRUE) || (ringStatus == pdTRUE) || (middleStatus == pdTRUE) || (indexStatus == pdTRUE) || (thumbStatus == pdTRUE) || (accelStatus == pdTRUE)) {
-      if (xQueueSend(handQueue, &machineData, IMUQueueWait) != pdPASS) {
+      if (xQueueSend(handQueue, &machineData, IMU_QUEUE_WAIT) != pdPASS) {
       }  //updates approx @ 125hz
     } else {
       // Serial.println("No Data to be saved");
@@ -265,7 +265,7 @@ void accelGyroFunc(void *pvParameters) {
       while (ACCEL.checkDataReady()) {
       }
       imuData = ACCEL.getData();
-      uint8_t data[] = { imuData.q1, imuData.q2, imuData.q3, imuData.q0 }
+      uint8_t data[] = { imuData.q1, imuData.q2, imuData.q3, imuData.q0 };
       ble.imuWrite(data);
       lastIMUrun = millis();
     }
@@ -287,7 +287,7 @@ void accelGyroFunc(void *pvParameters) {
 void pinkyFingerFunc(void *pvParameters) {
   for (;;) {
     uint16_t fingerData = pinkyFinger.read();  // Assuming read() returns uint16_t
-    if (xQueueSend(pinkyQueue, &fingerData, pdMS_TO_TICKS(fingerQueueWait)) != pdPASS) {
+    if (xQueueSend(pinkyQueue, &fingerData, pdMS_TO_TICKS(FINGER_QUEUE_WAIT)) != pdPASS) {
       fingerErrorCheck.pinky++;
     }
     vTaskDelay(pdMS_TO_TICKS(1000 / FINGER_SAMPLING_RATE));
@@ -297,7 +297,7 @@ void pinkyFingerFunc(void *pvParameters) {
 void ringFingerFunc(void *pvParameters) {
   for (;;) {
     uint16_t fingerData = ringFinger.read();
-    if (xQueueSend(ringQueue, &fingerData, pdMS_TO_TICKS(fingerQueueWait)) != pdPASS) {
+    if (xQueueSend(ringQueue, &fingerData, pdMS_TO_TICKS(FINGER_QUEUE_WAIT)) != pdPASS) {
       fingerErrorCheck.ring++;
     }
     vTaskDelay(pdMS_TO_TICKS(1000 / FINGER_SAMPLING_RATE));
@@ -307,7 +307,7 @@ void ringFingerFunc(void *pvParameters) {
 void middleFingerFunc(void *pvParameters) {
   for (;;) {
     uint16_t fingerData = middleFinger.read();
-    if (xQueueSend(middleQueue, &fingerData, pdMS_TO_TICKS(fingerQueueWait)) != pdPASS) {
+    if (xQueueSend(middleQueue, &fingerData, pdMS_TO_TICKS(FINGER_QUEUE_WAIT)) != pdPASS) {
       fingerErrorCheck.middle++;
     }
     vTaskDelay(pdMS_TO_TICKS(1000 / FINGER_SAMPLING_RATE));
@@ -317,7 +317,7 @@ void middleFingerFunc(void *pvParameters) {
 void indexFingerFunc(void *pvParameters) {
   for (;;) {
     uint16_t fingerData = indexFinger.read();
-    if (xQueueSend(indexQueue, &fingerData, pdMS_TO_TICKS(fingerQueueWait)) != pdPASS) {
+    if (xQueueSend(indexQueue, &fingerData, pdMS_TO_TICKS(FINGER_QUEUE_WAIT)) != pdPASS) {
       fingerErrorCheck.index++;
     }
     vTaskDelay(pdMS_TO_TICKS(1000 / FINGER_SAMPLING_RATE));
@@ -327,7 +327,7 @@ void indexFingerFunc(void *pvParameters) {
 void thumbFingerFunc(void *pvParameters) {
   for (;;) {
     uint16_t fingerData = thumbFinger.read();
-    if (xQueueSend(thumbQueue, &fingerData, pdMS_TO_TICKS(fingerQueueWait)) != pdPASS) {
+    if (xQueueSend(thumbQueue, &fingerData, pdMS_TO_TICKS(FINGER_QUEUE_WAIT)) != pdPASS) {
       fingerErrorCheck.thumb++;
     }
     vTaskDelay(pdMS_TO_TICKS(1000 / FINGER_SAMPLING_RATE));

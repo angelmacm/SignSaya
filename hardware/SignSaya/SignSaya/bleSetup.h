@@ -69,7 +69,7 @@ public:
 
     fingerLane->addDescriptor(new BLE2902());
 
-    fingerLane = pService->createCharacteristic(
+    imuLane = pService->createCharacteristic(
       IMU_LANE,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
 
