@@ -39,9 +39,12 @@ private:
   }
 
 public:
-  FingerInstance(uint8_t fingerPin)
-    : pinNumber(fingerPin) {
-    pinMode(pinNumber, INPUT);
+  FingerInstance() {
+  }
+
+  void begin(uint8_t fingerPin) {
+    pinMode(fingerPin, INPUT);
+    pinNumber = fingerPin;
   }
 
   // Main read function - handles scaling of moving average result

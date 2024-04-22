@@ -7,7 +7,8 @@
 
 
 BLEServer* pServer = NULL;
-BLECharacteristic* pTxCharacteristic;
+BLECharacteristic* fingerLane;
+BLECharacteristic* imuLane;
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
 
@@ -15,16 +16,18 @@ bool oldDeviceConnected = false;
 #define SERVICE_UUID "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"  // UART service UUID
 #define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 #define CHARACTERISTIC_UUID_TX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
+#define FINGER_LANE "806E5CE2-866C-41C6-8C40-F4D5739A6616"
+#define IMU_LANE "58C7A24D-738A-426D-A849-D3EFDF4C16BB"
 
 
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
     deviceConnected = true;
-    digitalWrite(bluetoothIndicator, HIGH);
+    digitalWrite(BLUETOOTH_INDICATOR, HIGH);
   };
 
   void onDisconnect(BLEServer* pServer) {
-    digitalWrite(bluetoothIndicator, LOW);
+    digitalWrite(BLUETOOTH_INDICATOR, LOW);
     deviceConnected = false;
   }
 };
@@ -37,7 +40,7 @@ public:
   }
 
   void begin(std::string bleName) {
-    pinMode(bluetoothIndicator, OUTPUT);
+    pinMode(BLUETOOTH_INDICATOR, OUTPUT);
 #ifdef USE_LOGGING
     Serial.println("Starting Bluetooth Low Energy");
 #endif
@@ -60,11 +63,18 @@ public:
     BLEService* pService = pServer->createService(SERVICE_UUID);
 
     // Create a BLE Characteristic
-    pTxCharacteristic = pService->createCharacteristic(
-      CHARACTERISTIC_UUID_TX,
+    fingerLane = pService->createCharacteristic(
+      FINGER_LANE,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
 
-    pTxCharacteristic->addDescriptor(new BLE2902());
+    fingerLane->addDescriptor(new BLE2902());
+
+    fingerLane = pService->createCharacteristic(
+      IMU_LANE,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
+
+    fingerLane->addDescriptor(new BLE2902());
+    imuLane->addDescriptor(new BLE2902());
 
     // BLECharacteristic* pRxCharacteristic = pService->createCharacteristic(
     //   CHARACTERISTIC_UUID_RX,
@@ -77,7 +87,8 @@ public:
     // pRxCharacteristic->setCallbacks(new MyCallbacks());
 
     // Start the service
-    pTxCharacteristic->setValue("Gloves");
+    fingerLane->setValue("Fingers");
+    imuLane->setValue("IMU");
     pService->start();
 
     // Start advertising
@@ -94,15 +105,15 @@ public:
     BLEDevice::startAdvertising();
   }
 
-  void write(uint8_t* message) {
-    long startTime = micros();
+  void fingerWrite(uint8_t* message) {
+    // long startTime = micros();
+    fingerLane->setValue(message, sizeof(message));
+    fingerLane->notify();
+  }
 
-#ifdef USE_ICM
-    pTxCharacteristic->setValue(message, sizeof(uint8_t) * 9);
-#else
-    pTxCharacteristic->setValue(message, sizeof(uint8_t) * 8);
-#endif
-    pTxCharacteristic->notify();
+  void imuWrite(uint8_t* data) {
+    imuLane->setValue(data, sizeof(data));
+    imuLane->notify();
   }
 
   bool isConnected() {

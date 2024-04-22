@@ -22,11 +22,11 @@
 accelSensor ACCEL;
 bleInstance ble;
 
-FingerInstance pinkyFinger((digitalRead(HANDPIN) ? INDEXPIN : PINKYPIN));
-FingerInstance ringFinger((digitalRead(HANDPIN) ? MIDDLEPIN : RINGPIN));
-FingerInstance middleFinger((digitalRead(HANDPIN) ? RINGPIN : MIDDLEPIN));
-FingerInstance indexFinger((digitalRead(HANDPIN) ? PINKYPIN : INDEXPIN));
-FingerInstance thumbFinger((digitalRead(HANDPIN) ? HANDPIN : THUMBPIN));
+FingerInstance pinkyFinger;
+FingerInstance ringFinger;
+FingerInstance middleFinger;
+FingerInstance indexFinger;
+FingerInstance thumbFinger;
 
 int packageSent = 0;
 
@@ -79,8 +79,14 @@ void IRAM_ATTR sensorISR() {
 #endif
 
 void setup() {
-  pinMode(HANDPIN, INPUT);
   pinMode(IMU_INTERRUPT, INPUT);
+
+  pinkyFinger.begin((digitalRead(HAND_PIN) ? INDEX_PIN : PINKY_PIN));
+  ringFinger.begin((digitalRead(HAND_PIN) ? MIDDLE_PIN : RING_PIN));
+  middleFinger.begin((digitalRead(HAND_PIN) ? RING_PIN : MIDDLE_PIN));
+  indexFinger.begin((digitalRead(HAND_PIN) ? PINKY_PIN : INDEX_PIN));
+  thumbFinger.begin((digitalRead(HAND_PIN) ? HAND_PIN : THUMB_PIN));
+
 #ifndef USE_ICM
   attachInterrupt(digitalPinToInterrupt(IMU_INTERRUPT), sensorISR, RISING);
 #endif
@@ -93,7 +99,7 @@ void setup() {
   String handSide;
   int randNumber = random(100000);
   String UBluetoothName = bluetoothName;
-  if (digitalRead(HANDPIN)) {
+  if (digitalRead(HAND_PIN)) {
     handSide = "R";
   } else {
     handSide = "L";
@@ -154,19 +160,22 @@ void bleChecker(void *pvParameters) {
 
         // if not yet intialized, create the tasks
 
-        xTaskCreatePinnedToCore(&pinkyFingerFunc, "pinkyFunc", fingerStackSize, NULL, fingerPriority, &pinkyTask, APPCORE);
-        xTaskCreatePinnedToCore(&ringFingerFunc, "ringFunc", fingerStackSize, NULL, fingerPriority, &ringTask, APPCORE);
-        xTaskCreatePinnedToCore(&middleFingerFunc, "middleFunc", fingerStackSize, NULL, fingerPriority, &middleTask, APPCORE);
-        xTaskCreatePinnedToCore(&indexFingerFunc, "indexFunc", fingerStackSize, NULL, fingerPriority, &indexTask, APPCORE);
-        xTaskCreatePinnedToCore(&thumbFingerFunc, "thumbFunc", fingerStackSize, NULL, fingerPriority, &thumbTask, APPCORE);
-        xTaskCreatePinnedToCore(&accelGyroFunc, "mpuFunc", mpuStackSize, NULL, 10, &imuTask, APPCORE);
+        xTaskCreatePinnedToCore(&pinkyFingerFunc, "pinkyFunc", fingerStackSize, NULL, FINGER_PRIORITY, &pinkyTask, APPCORE);
+        xTaskCreatePinnedToCore(&ringFingerFunc, "ringFunc", fingerStackSize, NULL, FINGER_PRIORITY, &ringTask, APPCORE);
+        xTaskCreatePinnedToCore(&middleFingerFunc, "middleFunc", fingerStackSize, NULL, FINGER_PRIORITY, &middleTask, APPCORE);
+        xTaskCreatePinnedToCore(&indexFingerFunc, "indexFunc", fingerStackSize, NULL, FINGER_PRIORITY, &indexTask, APPCORE);
+        xTaskCreatePinnedToCore(&thumbFingerFunc, "thumbFunc", fingerStackSize, NULL, FINGER_PRIORITY, &thumbTask, APPCORE);
+        xTaskCreatePinnedToCore(&accelGyroFunc, "mpuFunc", mpuStackSize, NULL, ACCEL_PRIORITY, &imuTask, APPCORE);
 
-        xTaskCreatePinnedToCore(&dataParser, "dataPreparation", 10240, NULL, blePriority, &parserTask, SYSTEMCORE);
-        xTaskCreatePinnedToCore(&bleSender, "dataTransmission", 10240, NULL, blePriority, &senderTask, SYSTEMCORE);
+        xTaskCreatePinnedToCore(&dataParser, "dataPreparation", 10240, NULL, BLE_PRIORITY, &parserTask, SYSTEMCORE);
+        xTaskCreatePinnedToCore(&bleSender, "dataTransmission", 10240, NULL, BLE_PRIORITY, &senderTask, SYSTEMCORE);
         initializedTasks = true;
 
       } else {
-        // if it is already intialized, resume the tasks from suspension
+// if it is already intialized, resume the tasks from suspension
+#ifdef USE_ICM
+        ACCEL.resetFIFO();
+#endif
         vTaskResume(pinkyTask);
         vTaskResume(ringTask);
         vTaskResume(middleTask);
@@ -199,27 +208,12 @@ void bleSender(void *pvParameters) {
   handData_t message;
   for (;;) {
     if ((int)xQueueReceive(handQueue, &message, 0) == pdTRUE) {
-#ifdef USE_ICM
       uint8_t sendData[] = { message.pinky,
                              message.ring,
                              message.middle,
                              message.index,
-                             message.thumb,
-                             message.angles.q0,
-                             message.angles.q1,
-                             message.angles.q2,
-                             message.angles.q3 };
-#else
-      uint8_t sendData[] = { message.pinky,
-                             message.ring,
-                             message.middle,
-                             message.index,
-                             message.thumb,
-                             message.angles.angleX,
-                             message.angles.angleY,
-                             message.angles.angleZ };
-#endif
-      ble.write(sendData);
+                             message.thumb };
+      ble.fingerWrite(sendData);
     }
     vTaskDelay(pdMS_TO_TICKS(1));
   }
@@ -271,9 +265,8 @@ void accelGyroFunc(void *pvParameters) {
       while (ACCEL.checkDataReady()) {
       }
       imuData = ACCEL.getData();
-      if (xQueueSend(IMUQueue, &imuData, pdMS_TO_TICKS(IMUQueueWait)) != pdPASS) {
-        missedIMUData++;
-      }
+      uint8_t data[] = { imuData.q1, imuData.q2, imuData.q3, imuData.q0 }
+      ble.imuWrite(data);
       lastIMUrun = millis();
     }
 
@@ -284,10 +277,8 @@ void accelGyroFunc(void *pvParameters) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
     imuData = ACCEL.getData();
-    if (xQueueSend(IMUQueue, &imuData, pdMS_TO_TICKS(IMUQueueWait)) != pdPASS) {
-      missedIMUData++;
-      // ESP_LOGD("Missed Gyro Data", "%f, %f", imuData.angleX, imuData.angleY);
-    }
+    uint8_t data[] = { imuData.angleX, imuData.angleY, imuData.angleZ };
+    ble.imuWrite(data);
 
 #endif
   }
@@ -299,7 +290,7 @@ void pinkyFingerFunc(void *pvParameters) {
     if (xQueueSend(pinkyQueue, &fingerData, pdMS_TO_TICKS(fingerQueueWait)) != pdPASS) {
       fingerErrorCheck.pinky++;
     }
-    vTaskDelay(pdMS_TO_TICKS(1000 / fingerSamplingRate));
+    vTaskDelay(pdMS_TO_TICKS(1000 / FINGER_SAMPLING_RATE));
   }
 }
 
@@ -309,7 +300,7 @@ void ringFingerFunc(void *pvParameters) {
     if (xQueueSend(ringQueue, &fingerData, pdMS_TO_TICKS(fingerQueueWait)) != pdPASS) {
       fingerErrorCheck.ring++;
     }
-    vTaskDelay(pdMS_TO_TICKS(1000 / fingerSamplingRate));
+    vTaskDelay(pdMS_TO_TICKS(1000 / FINGER_SAMPLING_RATE));
   }
 }
 
@@ -319,7 +310,7 @@ void middleFingerFunc(void *pvParameters) {
     if (xQueueSend(middleQueue, &fingerData, pdMS_TO_TICKS(fingerQueueWait)) != pdPASS) {
       fingerErrorCheck.middle++;
     }
-    vTaskDelay(pdMS_TO_TICKS(1000 / fingerSamplingRate));
+    vTaskDelay(pdMS_TO_TICKS(1000 / FINGER_SAMPLING_RATE));
   }
 }
 
@@ -329,7 +320,7 @@ void indexFingerFunc(void *pvParameters) {
     if (xQueueSend(indexQueue, &fingerData, pdMS_TO_TICKS(fingerQueueWait)) != pdPASS) {
       fingerErrorCheck.index++;
     }
-    vTaskDelay(pdMS_TO_TICKS(1000 / fingerSamplingRate));
+    vTaskDelay(pdMS_TO_TICKS(1000 / FINGER_SAMPLING_RATE));
   }
 }
 
@@ -339,7 +330,7 @@ void thumbFingerFunc(void *pvParameters) {
     if (xQueueSend(thumbQueue, &fingerData, pdMS_TO_TICKS(fingerQueueWait)) != pdPASS) {
       fingerErrorCheck.thumb++;
     }
-    vTaskDelay(pdMS_TO_TICKS(1000 / fingerSamplingRate));
+    vTaskDelay(pdMS_TO_TICKS(1000 / FINGER_SAMPLING_RATE));
   }
 }
 #ifdef USE_LOGGING
@@ -387,15 +378,15 @@ void telPrint(void *pvParameters) {
     Serial.print(core1Tel);
     Serial.print("  Free Memory: ");
     Serial.println(esp_get_free_heap_size());
-    digitalWrite(bluetoothIndicator, ledState);
+    digitalWrite(BLUETOOTH_INDICATOR, ledState);
     ledState = !ledState;
     vTaskDelay(pdMS_TO_TICKS(500));
     // for (int index = 0; index < 255; index++) {
-    //   analogWrite(bluetoothIndicator, index);
+    //   analogWrite(BLUETOOTH_INDICATOR, index);
     //   vTaskDelay(pdMS_TO_TICKS(2));
     // }
     // for (int index = 255; index > 0; index--) {
-    //   analogWrite(bluetoothIndicator, index);
+    //   analogWrite(BLUETOOTH_INDICATOR, index);
     //   vTaskDelay(pdMS_TO_TICKS(2));
   }
 }
