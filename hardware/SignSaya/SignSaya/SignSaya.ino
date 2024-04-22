@@ -22,11 +22,11 @@
 accelSensor ACCEL;
 bleInstance ble;
 
-FingerInstance pinkyFinger(PINKYPIN);
-FingerInstance ringFinger(RINGPIN);
-FingerInstance middleFinger(MIDDLEPIN);
-FingerInstance indexFinger(INDEXPIN);
-FingerInstance thumbFinger(THUMBPIN);
+FingerInstance pinkyFinger((digitalRead(HANDPIN) ? INDEXPIN : PINKYPIN));
+FingerInstance ringFinger((digitalRead(HANDPIN) ? MIDDLEPIN : RINGPIN));
+FingerInstance middleFinger((digitalRead(HANDPIN) ? RINGPIN : MIDDLEPIN));
+FingerInstance indexFinger((digitalRead(HANDPIN) ? PINKYPIN : INDEXPIN));
+FingerInstance thumbFinger((digitalRead(HANDPIN) ? HANDPIN : THUMBPIN));
 
 int packageSent = 0;
 
