@@ -141,21 +141,54 @@ void bleChecker(void *pvParameters) {
   Serial.println("No devices connected... waiting to connect to run tasks");
 #endif
   for (;;) {
-    if (ble.isConnected() && !initializedTasks) {
-      Serial.println("Running Tasks");
-      xTaskCreatePinnedToCore(&pinkyFingerFunc, "pinkyFunc", fingerStackSize, NULL, fingerPriority, &pinkyTask, APPCORE);
-      xTaskCreatePinnedToCore(&ringFingerFunc, "ringFunc", fingerStackSize, NULL, fingerPriority, &ringTask, APPCORE);
-      xTaskCreatePinnedToCore(&middleFingerFunc, "middleFunc", fingerStackSize, NULL, fingerPriority, &middleTask, APPCORE);
-      xTaskCreatePinnedToCore(&indexFingerFunc, "indexFunc", fingerStackSize, NULL, fingerPriority, &indexTask, APPCORE);
-      xTaskCreatePinnedToCore(&thumbFingerFunc, "thumbFunc", fingerStackSize, NULL, fingerPriority, &thumbTask, APPCORE);
-      xTaskCreatePinnedToCore(&accelGyroFunc, "mpuFunc", mpuStackSize, NULL, 10, &imuTask, APPCORE);
+    if (ble.isConnected()) {
 
-      xTaskCreatePinnedToCore(&dataParser, "dataPreparation", 10240, NULL, blePriority, &parserTask, SYSTEMCORE);
-      xTaskCreatePinnedToCore(&bleSender, "dataTransmission", 10240, NULL, blePriority, &senderTask, SYSTEMCORE);
-      initializedTasks = true;
+#ifdef USE_LOGGING
+
+      Serial.println("Running Tasks");
+
+#endif
+      // start tasks
+
+      if (!initializedTasks) {
+
+        // if not yet intialized, create the tasks
+
+        xTaskCreatePinnedToCore(&pinkyFingerFunc, "pinkyFunc", fingerStackSize, NULL, fingerPriority, &pinkyTask, APPCORE);
+        xTaskCreatePinnedToCore(&ringFingerFunc, "ringFunc", fingerStackSize, NULL, fingerPriority, &ringTask, APPCORE);
+        xTaskCreatePinnedToCore(&middleFingerFunc, "middleFunc", fingerStackSize, NULL, fingerPriority, &middleTask, APPCORE);
+        xTaskCreatePinnedToCore(&indexFingerFunc, "indexFunc", fingerStackSize, NULL, fingerPriority, &indexTask, APPCORE);
+        xTaskCreatePinnedToCore(&thumbFingerFunc, "thumbFunc", fingerStackSize, NULL, fingerPriority, &thumbTask, APPCORE);
+        xTaskCreatePinnedToCore(&accelGyroFunc, "mpuFunc", mpuStackSize, NULL, 10, &imuTask, APPCORE);
+
+        xTaskCreatePinnedToCore(&dataParser, "dataPreparation", 10240, NULL, blePriority, &parserTask, SYSTEMCORE);
+        xTaskCreatePinnedToCore(&bleSender, "dataTransmission", 10240, NULL, blePriority, &senderTask, SYSTEMCORE);
+        initializedTasks = true;
+
+      } else {
+        // if it is already intialized, resume the tasks from suspension
+        vTaskResume(pinkyTask);
+        vTaskResume(ringTask);
+        vTaskResume(middleTask);
+        vTaskResume(indexTask);
+        vTaskResume(thumbTask);
+        vTaskResume(imuTask);
+        vTaskResume(parserTask);
+        vTaskResume(senderTask);
+      }
+
 #ifdef USE_LOGGING
       Serial.println("Tasks successfuly ran");
 #endif
+    } else if (!ble.isConnected() && initializedTasks) {
+      vTaskSuspend(pinkyTask);
+      vTaskSuspend(ringTask);
+      vTaskSuspend(middleTask);
+      vTaskSuspend(indexTask);
+      vTaskSuspend(thumbTask);
+      vTaskSuspend(imuTask);
+      vTaskSuspend(parserTask);
+      vTaskSuspend(senderTask);
     } else {
       vTaskDelay(pdMS_TO_TICKS(1000));
     }
