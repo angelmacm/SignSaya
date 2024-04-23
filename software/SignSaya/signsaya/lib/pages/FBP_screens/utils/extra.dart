@@ -1,51 +1,54 @@
-import 'utils.dart';
+import 'utils.dart'; // Importing custom utility functions
 
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // Importing FlutterBluePlus package
 
+// Global maps to store stream controllers for connection and disconnection states
 final Map<DeviceIdentifier, StreamControllerReemit<bool>> _cglobal = {};
 final Map<DeviceIdentifier, StreamControllerReemit<bool>> _dglobal = {};
 
-/// connect & disconnect + update stream
+/// Extension methods for BluetoothDevice class
 extension Extra on BluetoothDevice {
-  // convenience
+  // Convenience method to get connection stream controller
   StreamControllerReemit<bool> get _cstream {
+    // Initializing stream controller if not already initialized
     _cglobal[remoteId] ??= StreamControllerReemit(initialValue: false);
     return _cglobal[remoteId]!;
   }
 
-  // convenience
+  // Convenience method to get disconnection stream controller
   StreamControllerReemit<bool> get _dstream {
+    // Initializing stream controller if not already initialized
     _dglobal[remoteId] ??= StreamControllerReemit(initialValue: false);
     return _dglobal[remoteId]!;
   }
 
-  // get stream
+  // Getter for connection stream
   Stream<bool> get isConnecting {
     return _cstream.stream;
   }
 
-  // get stream
+  // Getter for disconnection stream
   Stream<bool> get isDisconnecting {
     return _dstream.stream;
   }
 
-  // connect & update stream
+  // Connect to the Bluetooth device and update connection stream
   Future<void> connectAndUpdateStream() async {
-    _cstream.add(true);
+    _cstream.add(true); // Indicate that connection is in progress
     try {
-      await connect(mtu: null);
+      await connect(mtu: null); // Perform the connection
     } finally {
-      _cstream.add(false);
+      _cstream.add(false); // Indicate that connection process is complete
     }
   }
 
-  // disconnect & update stream
+  // Disconnect from the Bluetooth device and update disconnection stream
   Future<void> disconnectAndUpdateStream({bool queue = true}) async {
-    _dstream.add(true);
+    _dstream.add(true); // Indicate that disconnection is in progress
     try {
-      await disconnect(queue: queue);
+      await disconnect(queue: queue); // Perform the disconnection
     } finally {
-      _dstream.add(false);
+      _dstream.add(false); // Indicate that disconnection process is complete
     }
   }
 }
