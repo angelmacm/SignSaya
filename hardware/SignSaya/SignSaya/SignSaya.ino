@@ -49,6 +49,7 @@ TaskHandle_t indexTask;
 TaskHandle_t thumbTask;
 TaskHandle_t imuSenderTask;
 TaskHandle_t parserTask;
+TaskHandle_t calibrateGlovesTask;
 
 int missedIMUData = 0;
 
@@ -151,12 +152,34 @@ void setup() {
 }
 
 void loop() {
-  vTaskDelay(pdMS_TO_TICKS(1000000000));
+  ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 }
 
 /*--------------------------------------------------*/
 /*---------------------- Tasks ---------------------*/
 /*--------------------------------------------------*/
+
+void calibrateGloves(void *pvParameters) {
+  for (;;) {
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+#ifdef USE_LOGGING
+    Serial.println("Gloves calibration started...");
+#endif
+
+    unsigned long lastRun = millis();
+    while (millis() - lastRun <= CALIBRATION_TIME*1000) {
+      digitalWrite(RGB_BUILTIN, HIGH);
+      vTaskDelay(pdMS_TO_TICKS(100));
+      digitalWrite(RGB_BUILTIN, LOW);
+      vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    isRunning = false;
+#ifdef USE_LOGGING
+    Serial.println("Gloves calibration done.");
+#endif
+  }
+}
+
 
 void bleChecker(void *pvParameters) {
 
@@ -176,11 +199,12 @@ void bleChecker(void *pvParameters) {
         xTaskCreatePinnedToCore(&middleFingerFunc, "middleFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &middleTask, APPCORE);
         xTaskCreatePinnedToCore(&indexFingerFunc, "indexFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &indexTask, APPCORE);
         xTaskCreatePinnedToCore(&thumbFingerFunc, "thumbFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &thumbTask, APPCORE);
-        xTaskCreatePinnedToCore(&accelGyroFunc, "mpuFunc", MPU_STACK_SIZE, NULL, ACCEL_PRIORITY, &imuTask, SYSTEMCORE);
-        xTaskCreatePinnedToCore(&accelGyroSender, "mpuSender", MPU_STACK_SIZE, NULL, ACCEL_PRIORITY, &imuSenderTask, SYSTEMCORE);
+        xTaskCreatePinnedToCore(&accelGyroFunc, "mpuFunc", MPU_STACK_SIZE, NULL, ACCEL_PRIORITY, &imuTask, APPCORE);
 
-        xTaskCreatePinnedToCore(&fingerSender, "fingerSender", 10240, NULL, BLE_PRIORITY, &parserTask, SYSTEMCORE);
-        // xTaskCreatePinnedToCore(&bleSender, "dataTransmission", 10240, NULL, BLE_PRIORITY, &senderTask, SYSTEMCORE);
+        xTaskCreatePinnedToCore(&accelGyroSender, "mpuSender", MPU_STACK_SIZE, NULL, SYSTEM_PRIORITY, &imuSenderTask, SYSTEMCORE);
+        xTaskCreatePinnedToCore(&fingerSender, "fingerSender", 10240, NULL, SYSTEM_PRIORITY, &parserTask, SYSTEMCORE);
+        xTaskCreatePinnedToCore(&calibrateGloves, "calibrateGlove", 10240, NULL, SYSTEM_PRIORITY, &calibrateGlovesTask, SYSTEMCORE);
+
         initializedTasks = true;
         isRunning = true;
 #ifdef USE_LOGGING
@@ -218,6 +242,20 @@ void bleChecker(void *pvParameters) {
       // vTaskSuspend(senderTask);
       isRunning = false;
       ble.restartAdvertising();
+    }
+    if (ble.isCalibrateRequest()) {
+#ifdef USE_LOGGING
+      Serial.println("Calibration request detected...");
+#endif
+      ble.doneCalibrate();
+      xTaskNotifyGive(calibrateGlovesTask);
+      vTaskSuspend(pinkyTask);
+      vTaskSuspend(ringTask);
+      vTaskSuspend(middleTask);
+      vTaskSuspend(indexTask);
+      vTaskSuspend(thumbTask);
+      vTaskSuspend(imuTask);
+      vTaskSuspend(parserTask);
     }
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
