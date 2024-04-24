@@ -67,8 +67,6 @@ public:
       FINGER_LANE,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
 
-    fingerLane->addDescriptor(new BLE2902());
-
     imuLane = pService->createCharacteristic(
       IMU_LANE,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
@@ -87,8 +85,8 @@ public:
     // pRxCharacteristic->setCallbacks(new MyCallbacks());
 
     // Start the service
-    fingerLane->setValue("Fingers");
-    imuLane->setValue("IMU");
+    // fingerLane->setValue("Fingers");
+    // imuLane->setValue("IMU");
     pService->start();
 
     // Start advertising
@@ -107,16 +105,21 @@ public:
 
   void fingerWrite(uint8_t* message) {
     // long startTime = micros();
-    fingerLane->setValue(message, sizeof(message));
+
+    fingerLane->setValue(message, 5);
     fingerLane->notify();
   }
 
-  void imuWrite(uint8_t* data) {
-    imuLane->setValue(data, sizeof(data));
+  void imuWrite(uint8_t* imuData) {
+    imuLane->setValue(imuData, sizeof(imuData));
     imuLane->notify();
   }
 
   bool isConnected() {
     return deviceConnected;
+  }
+
+  void restartAdvertising() {
+    pServer->startAdvertising();  // restart advertising
   }
 };

@@ -2,6 +2,12 @@
 // #define USE_ICM // 6.9kb bigger than MPU6050
 // #define USE_LOGGING // 2.8kb bigger than with no logging
 
+#ifdef USE_ICM
+#define IMUDATATYPE quaternion_t
+#else
+#define IMUDATATYPE angleData_t
+#endif
+
 /*
     DO NOT USE PINS IN THIS LIST
     0 = STRAPPING PIN FOR BOOT BUTTON
@@ -47,7 +53,7 @@
 #define FINGER_QUEUE_WAIT 1
 
 #define FINGER_STACK_SIZE 1280
-#define MPU_STACK_SIZE 2560
+#define MPU_STACK_SIZE 20480
 
 #define FINGER_PRIORITY 1
 #define ACCEL_PRIORITY 3

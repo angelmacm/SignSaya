@@ -106,8 +106,8 @@ public:
   }
 #else
   void begin(const uint8_t SDA_PIN, const uint8_t SCL_PIN, const uint8_t INTERRUPT_PIN) {
-    Wire.begin(46, 3);
-    Wire.setClock(400000);  // 400kHz I2C clock. Comment this line if having compilation difficulties
+    Wire.begin(46, 3, 400000);
+    // Wire.setClock(400000);  // 400kHz I2C clock. Comment this line if having compilation difficulties
     init(INTERRUPT_PIN);
   }
 #endif
@@ -116,11 +116,6 @@ public:
 // initialize serial communication
 // (115200 chosen because it is required for Teapot Demo output, but it's
 // really up to you depending on your project)
-#ifdef USE_LOGGING
-    Serial.begin(115200);
-    while (!Serial)
-      ;  // wait for Leonardo enumeration, others continue immediately
-#endif
 // NOTE: 8MHz or slower host processors, like the Teensy @ 3.3V or Arduino
 // Pro Mini running at 3.3V, cannot handle this baud rate reliably due to
 // the baud timing being too misaligned with processor ticks. You must use
@@ -159,7 +154,6 @@ public:
       // Calibration Time: generate offsets and calibrate our MPU6050
       // mpu.CalibrateAccel(6);
       // mpu.CalibrateGyro(6);
-      Serial.println();
       mpu.PrintActiveOffsets();
 // turn on the DMP, now that it's ready
 #ifdef USE_LOGGING
@@ -183,7 +177,7 @@ public:
       // get expected DMP packet size for later comparison
       packetSize = mpu.dmpGetFIFOPacketSize();
 
-      detachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN));
+      // detachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN));
     } else {
 #ifdef USE_LOGGING
       // ERROR!
