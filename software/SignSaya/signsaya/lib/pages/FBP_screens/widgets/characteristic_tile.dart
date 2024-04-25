@@ -3,31 +3,33 @@ import 'dart:async'; // For asynchronous operations.
 import 'dart:math'; // For random number generation.
 import 'package:flutter/material.dart'; // Flutter material UI components.
 import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // Flutter Blue Plus for Bluetooth functionality.
-import 'package:SignSaya/pages/gloves_calibration.dart'; // Import GlovesCalibration page.
+//import 'package:SignSaya/pages/gloves_calibration.dart'; // Import GlovesCalibration page.
 import '../utils/snackbar.dart'; // Import Snackbar utility.
 import 'descriptor_tile.dart'; // Import DescriptorTile widget.
 
 // Define a tile widget for displaying Bluetooth characteristics.
 class CharacteristicTile extends StatefulWidget {
   // Constructor with required parameters: characteristic and descriptorTiles.
+  
+  // Bluetooth characteristic to display in the tile.
+  final BluetoothCharacteristic characteristic;
+  // List of descriptor tiles associated with the characteristic.
+  final List<DescriptorTile> descriptorTiles;
+  
   const CharacteristicTile({
     Key? key,
     required this.characteristic,
     required this.descriptorTiles,
   }) : super(key: key);
 
-  // Bluetooth characteristic to display in the tile.
-  final BluetoothCharacteristic characteristic;
-  // List of descriptor tiles associated with the characteristic.
-  final List<DescriptorTile> descriptorTiles;
 
   // Static stream controller for sensor values.
-  static StreamController<List<int>> _sensorValuesController =
-      StreamController<List<int>>.broadcast();
+  // static StreamController<List<int>> _sensorValuesController =
+  //     StreamController<List<int>>.broadcast(); commented
 
   // Getter method to access the sensor values stream.
-  static Stream<List<int>> get sensorValuesStream =>
-      _sensorValuesController.stream;
+  // static Stream<List<int>> get sensorValuesStream =>
+  //     _sensorValuesController.stream;  commented
 
   @override
   State<CharacteristicTile> createState() => _CharacteristicTileState();
@@ -52,10 +54,14 @@ class _CharacteristicTileState extends State<CharacteristicTile> {
       if (mounted) {
         setState(() {});
         // Add the value to the sensor values stream.
-        CharacteristicTile._sensorValuesController.add(_value);
+        //CharacteristicTile._sensorValuesController.add(_value); commented
         print(value); // Log the value.
       }
     });
+    // Future.delayed(Duration(seconds: 1), () {
+    //   //print("Now Subscribed!");
+    //   onSubscribePressed();
+    // });
   }
 
   @override
@@ -120,10 +126,10 @@ class _CharacteristicTileState extends State<CharacteristicTile> {
         setState(() {});
       }
       // Navigate to GlovesCalibration page.
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => GlovesCalibration()),
-      );
+      // Navigator.push(
+      //   context,
+      //   MaterialPageRoute(builder: (context) => GlovesCalibration()),
+      // );
     } catch (e) {
       Snackbar.show(ABC.c, prettyException("Subscribe Error:", e),
           success: false);
@@ -133,19 +139,19 @@ class _CharacteristicTileState extends State<CharacteristicTile> {
   // Method to build and display the UUID of the characteristic.
   Widget buildUuid(BuildContext context) {
     String uuid = '0x${widget.characteristic.uuid.str.toUpperCase()}';
-    return Text(uuid, style: TextStyle(fontSize: 13));
+    return Text(uuid, style: const TextStyle(fontSize: 13));
   }
 
   // Method to build and display the value of the characteristic.
   Widget buildValue(BuildContext context) {
     String data = _value.toString();
-    return Text(data, style: TextStyle(fontSize: 13, color: Colors.white));
+    return Text(data, style: const TextStyle(fontSize: 13, color: Colors.white));
   }
 
   // Method to build the read button.
   Widget buildReadButton(BuildContext context) {
     return TextButton(
-      child: Text("Read"),
+      child: const Text("Read"),
       onPressed: () async {
         await onReadPressed();
         if (mounted) {

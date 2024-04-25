@@ -10,7 +10,7 @@ dependencies: # Dependencies required for the package
     sdk: flutter
   permission_handler: ^10.0.0 # Permission handler dependency
   flutter_blue_plus:  # Flutter Blue Plus dependency
-    version: ^1.32.1 # Version number of Flutter Blue Plus
+    version: ^1.17.3 # Version number of Flutter Blue Plus
   scoped_model: ^2.0.0 # Scoped model dependency
   speech_to_text: ^6.1.1 # Speech to text dependency
   cupertino_icons: ^1.0.2 # Cupertino icons dependency

@@ -53,7 +53,7 @@ class _FBPMainState extends State<FBPMain> {
   Widget build(BuildContext context) {
     // Determining which screen to display based on Bluetooth adapter state
     Widget screen = _adapterState == BluetoothAdapterState.on
-        ? const ScanScreen() // Display ScanScreen if Bluetooth is on
+        ? ScanScreen() // Display ScanScreen if Bluetooth is on
         : BluetoothOffScreen(
             adapterState:
                 _adapterState); // Display BluetoothOffScreen if Bluetooth is off

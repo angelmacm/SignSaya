@@ -100,18 +100,42 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   void onConnectPressed(BluetoothDevice device) {
-    // Method to handle connect button press.
-    device.connectAndUpdateStream().catchError((e) {
-      // Connecting to the device and handling errors.
-      Snackbar.show(ABC.c, prettyException("Connect Error:", e),
-          success: false); // Showing error message.
-    });
+  device.connectAndUpdateStream().then((_) {
+    print('Successfully connected to device with MAC address: ${device.remoteId}');
+  }).catchError((e) {
+    Snackbar.show(ABC.c, prettyException("Connect Error:", e), success: false);
+  });
+
+  // Find the second device by its MAC address
+  final String secondDeviceMac = "DC:DA:0C:16:C8:AD"; // second device mac address
+  final ScanResult secondDeviceResult = _scanResults.firstWhere(
+    (result) => result.device.remoteId == secondDeviceMac,
+    orElse: () => ScanResult(
+      device: BluetoothDevice(remoteId: DeviceIdentifier(secondDeviceMac)),
+      advertisementData: AdvertisementData(
+        advName: '',
+        txPowerLevel: 0,
+        appearance: 0,
+        connectable: false,
+        manufacturerData: {},
+        serviceData: {},
+        serviceUuids: [],
+      ),
+      rssi: 0,
+      timeStamp: DateTime.now(),
+    ),
+  );
+  secondDeviceResult.device.connectAndUpdateStream().then((_) {
+    //print('Successfully connected to device with MAC address: $secondDeviceMac');
     MaterialPageRoute route = MaterialPageRoute(
-        // Creating a new route for device screen.
-        builder: (context) => DeviceScreen(device: device),
-        settings: RouteSettings(name: '/DeviceScreen'));
-    Navigator.of(context).push(route); // Pushing the device screen route.
-  }
+      builder: (context) => DeviceScreen(devices: [device, secondDeviceResult.device]),
+      settings: RouteSettings(name: '/DeviceScreen'),
+    );
+    Navigator.of(context).push(route);
+  }).catchError((e) {
+    Snackbar.show(ABC.c, prettyException("Connect Error:", e), success: false);
+  });
+}
 
   Future onRefresh() {
     // Method to handle refresh action.
@@ -149,21 +173,17 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   List<Widget> _buildSystemDeviceTiles(BuildContext context) {
-    // Method to build system device tiles.
     return _systemDevices
         .map(
           (d) => SystemDeviceTile(
-            // Creating a SystemDeviceTile for each system device.
             device: d,
             onOpen: () => Navigator.of(context).push(
-              // Pushing the device screen route.
               MaterialPageRoute(
-                builder: (context) => DeviceScreen(device: d),
+                builder: (context) => DeviceScreen(devices: [d]), // new method of rerouting, previously kase one device lang, now list na
                 settings: RouteSettings(name: '/DeviceScreen'),
               ),
             ),
-            onConnect: () =>
-                onConnectPressed(d), // Handling connect button press.
+            onConnect: () => onConnectPressed(d),
           ),
         )
         .toList();
