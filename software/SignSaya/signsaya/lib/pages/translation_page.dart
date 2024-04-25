@@ -154,13 +154,13 @@ class _TranslationPageState extends State<TranslationPage> {
               // Display an ElevatedButton widget
               onPressed: () {
                 // Define button onPressed callback
-                Navigator.push(
-                  // Navigate to another screen when the button is pressed
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          GlovesCalibration()), // Navigate to GlovesCalibration screen
-                );
+                // Navigator.push(
+                //   // Navigate to another screen when the button is pressed
+                //   context,
+                //   MaterialPageRoute(
+                //       builder: (context) =>
+                //           GlovesCalibration()), // Navigate to GlovesCalibration screen
+                // );
               },
               style: ElevatedButton.styleFrom(
                 // Define button style
