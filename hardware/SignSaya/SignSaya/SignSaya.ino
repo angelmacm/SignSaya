@@ -95,6 +95,8 @@ void IRAM_ATTR sensorISR() {
 
 void setup() {
   pinMode(IMU_INTERRUPT, INPUT);
+  pinMode(HAND_PIN, INPUT);
+  pinMode(BLUETOOTH_INDICATOR, OUTPUT);
 
   pinkyFinger.begin((digitalRead(HAND_PIN) ? INDEX_PIN : PINKY_PIN));
   ringFinger.begin((digitalRead(HAND_PIN) ? MIDDLE_PIN : RING_PIN));
@@ -117,9 +119,9 @@ void setup() {
   int randNumber = random(100000);
   String UBluetoothName = bluetoothName;
   if (digitalRead(HAND_PIN)) {
-    handSide = "R";
-  } else {
     handSide = "L";
+  } else {
+    handSide = "R";
   }
 
   UBluetoothName += handSide + randNumber;
@@ -146,8 +148,8 @@ void setup() {
 #ifdef USE_LOGGING
   xTaskCreatePinnedToCore(&telPrint, "telPrint", 10240, NULL, 1, NULL, SYSTEMCORE);
 
-  xTaskCreatePinnedToCore(&telemetryCore1, "telemetry1", 2048, NULL, 0, NULL, 1);
-  xTaskCreatePinnedToCore(&telemetryCore0, "telemetry0", 2048, NULL, 0, NULL, 0);
+  xTaskCreatePinnedToCore(&telemetryCore1, "telemetry1", 2048, NULL, tskIDLE_PRIORITY, NULL, 1);
+  xTaskCreatePinnedToCore(&telemetryCore0, "telemetry0", 2048, NULL, tskIDLE_PRIORITY, NULL, 0);
 #endif
 }
 
