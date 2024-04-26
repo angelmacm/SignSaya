@@ -145,7 +145,7 @@ class _CharacteristicTileState extends State<CharacteristicTile> {
   // Method to build and display the value of the characteristic.
   Widget buildValue(BuildContext context) {
     String data = _value.toString();
-    return Text(data, style: const TextStyle(fontSize: 13, color: Colors.white));
+    return Text(data, style: const TextStyle(fontSize: 13, color: Colors.black));
   }
 
   // Method to build the read button.
