@@ -130,9 +130,9 @@ void setup() {
   ble.begin(uBlCharArray);
 
 #ifdef USE_SPI
-  ACCEL.begin(SPI_SDI_PIN, SPI_SCK_PIN, SPI_SDO_PIN, SPI_CS_PIN, IMU_INTERRUPT);
+  ACCEL.begin(SPI_SDI_PIN, SPI_SCK_PIN, SPI_SDO_PIN, SPI_CS_PIN);
 #else
-  ACCEL.begin(I2C_SDA_PIN, I2C_SCL_PIN, IMU_INTERRUPT);
+  ACCEL.begin(I2C_SDA_PIN, I2C_SCL_PIN);
 #endif
 
   pinkyQueue = xQueueCreate(FINGER_QUEUE_LENGTH, sizeof(uint8_t));
@@ -169,13 +169,20 @@ void calibrateGloves(void *pvParameters) {
 #endif
 
     unsigned long lastRun = millis();
-    while (millis() - lastRun <= CALIBRATION_TIME*1000) {
-      digitalWrite(RGB_BUILTIN, HIGH);
-      vTaskDelay(pdMS_TO_TICKS(100));
-      digitalWrite(RGB_BUILTIN, LOW);
-      vTaskDelay(pdMS_TO_TICKS(100));
+    while (millis() - lastRun <= CALIBRATION_TIME * 1000) {
+      pinkyFinger.calibrate();
+      ringFinger.calibrate();
+      middleFinger.calibrate();
+      indexFinger.calibrate();
+      thumbFinger.calibrate();
     }
+    ACCEL.init();
     isRunning = false;
+    pinkyFinger.saveCalibration();
+    ringFinger.saveCalibration();
+    middleFinger.saveCalibration();
+    indexFinger.saveCalibration();
+    thumbFinger.saveCalibration();
 #ifdef USE_LOGGING
     Serial.println("Gloves calibration done.");
 #endif
@@ -478,4 +485,4 @@ void telPrint(void *pvParameters) {
     //   vTaskDelay(pdMS_TO_TICKS(2));
   }
 }
-#endif
+#endif  // USE_LOGGING

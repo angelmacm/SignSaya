@@ -98,20 +98,20 @@ private:
   angleData_t angles;
 public:
 #ifdef USE_SPI
-  void begin(const uint8_t SDI_PIN, const uint8_t SCK_PIN, const uint8_t SDO_PIN, const uint8_t CS_PIN, const uint8_t INTERRUPT_PIN) {
+  void begin(const uint8_t SDI_PIN, const uint8_t SCK_PIN, const uint8_t SDO_PIN, const uint8_t CS_PIN) {
     spiObj = new SPIClass(HSPI);
     spiObj->begin(SCK_PIN, SDO_PIN, SDI_PIN, CS_PIN);
     pinMode(spiObj->pinSS(), OUTPUT);
-    init(INTERRUPT_PIN);
+    init();
   }
 #else
-  void begin(const uint8_t SDA_PIN, const uint8_t SCL_PIN, const uint8_t INTERRUPT_PIN) {
+  void begin(const uint8_t SDA_PIN, const uint8_t SCL_PIN) {
     Wire.begin(46, 3, 400000);
     // Wire.setClock(400000);  // 400kHz I2C clock. Comment this line if having compilation difficulties
-    init(INTERRUPT_PIN);
+    init();
   }
 #endif
-  void init(uint8_t INTERRUPT_PIN) {
+  void init() {
 
 // initialize serial communication
 // (115200 chosen because it is required for Teapot Demo output, but it's

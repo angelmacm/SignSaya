@@ -72,4 +72,8 @@ public:
     minInputValue = min(minInputValue, currentSensorValue);
     maxInputValue = max(maxInputValue, currentSensorValue);
   }
+
+  void saveCalibration(){
+    calibrationStarted = false;
+  }
 };
