@@ -156,7 +156,7 @@ class _ScanResultTileState extends State<ScanResultTile> {
     return ExpansionTile(
       // Expandable tile.
       title: _buildTitle(context), // Title.
-      leading: Text(widget.result.rssi.toString()), // RSSI.
+      leading: Text(widget.result.rssi.toString(), style: const TextStyle(color: Colors.white)), // RSSI.
       trailing: _buildConnectButton(context), // Connect button.
       children: <Widget>[
         if (adv.advName.isNotEmpty)
