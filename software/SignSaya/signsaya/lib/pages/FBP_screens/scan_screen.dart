@@ -40,7 +40,15 @@ class _ScanScreenState extends State<ScanScreen> {
       _scanResults = results; // Updating scan results list.
       if (mounted) {
         // Checking if widget is mounted before calling setState.
-        setState(() {}); // Updating UI.
+        setState(() {
+          for (ScanResult result in _scanResults) {
+            if (result.device.remoteId ==
+                const DeviceIdentifier("84:FC:E6:6A:C0:BD")) {
+              print("Found the Mac Device");
+              onConnectPressed(result.device);
+            }
+          }
+        }); // Updating UI.
       }
     }, onError: (e) {
       // Handling errors from scan results stream.
@@ -66,8 +74,7 @@ class _ScanScreenState extends State<ScanScreen> {
     super.dispose();
   }
 
-  Future onScanPressed() async {
-    // Method to handle scan button press.
+  Future<void> onScanPressed() async {
     try {
       _systemDevices =
           await FlutterBluePlus.systemDevices; // Getting system devices.
@@ -100,42 +107,47 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   void onConnectPressed(BluetoothDevice device) {
-  device.connectAndUpdateStream().then((_) {
-    print('Successfully connected to device with MAC address: ${device.remoteId}');
-  }).catchError((e) {
-    Snackbar.show(ABC.c, prettyException("Connect Error:", e), success: false);
-  });
+    device.connectAndUpdateStream().then((_) {
+      print(
+          'Successfully connected to device with MAC address: ${device.remoteId}');
+    }).catchError((e) {
+      Snackbar.show(ABC.c, prettyException("Connect Error:", e),
+          success: false);
+    });
 
-  // Find the second device by its MAC address
-  final String secondDeviceMac = "DC:DA:0C:16:C8:AD"; // second device mac address
-  final ScanResult secondDeviceResult = _scanResults.firstWhere(
-    (result) => result.device.remoteId == secondDeviceMac,
-    orElse: () => ScanResult(
-      device: BluetoothDevice(remoteId: DeviceIdentifier(secondDeviceMac)),
-      advertisementData: AdvertisementData(
-        advName: '',
-        txPowerLevel: 0,
-        appearance: 0,
-        connectable: false,
-        manufacturerData: {},
-        serviceData: {},
-        serviceUuids: [],
+    // Find the second device by its MAC address
+    final String secondDeviceMac =
+        "DC:DA:0C:16:C8:AD"; // second device mac address
+    final ScanResult secondDeviceResult = _scanResults.firstWhere(
+      (result) => result.device.remoteId == secondDeviceMac,
+      orElse: () => ScanResult(
+        device: BluetoothDevice(remoteId: DeviceIdentifier(secondDeviceMac)),
+        advertisementData: AdvertisementData(
+          advName: '',
+          txPowerLevel: 0,
+          appearance: 0,
+          connectable: false,
+          manufacturerData: {},
+          serviceData: {},
+          serviceUuids: [],
+        ),
+        rssi: 0,
+        timeStamp: DateTime.now(),
       ),
-      rssi: 0,
-      timeStamp: DateTime.now(),
-    ),
-  );
-  secondDeviceResult.device.connectAndUpdateStream().then((_) {
-    //print('Successfully connected to device with MAC address: $secondDeviceMac');
-    MaterialPageRoute route = MaterialPageRoute(
-      builder: (context) => DeviceScreen(devices: [device, secondDeviceResult.device]),
-      settings: RouteSettings(name: '/DeviceScreen'),
     );
-    Navigator.of(context).push(route);
-  }).catchError((e) {
-    Snackbar.show(ABC.c, prettyException("Connect Error:", e), success: false);
-  });
-}
+    secondDeviceResult.device.connectAndUpdateStream().then((_) {
+      //print('Successfully connected to device with MAC address: $secondDeviceMac');
+      MaterialPageRoute route = MaterialPageRoute(
+        builder: (context) =>
+            DeviceScreen(devices: [device, secondDeviceResult.device]),
+        settings: RouteSettings(name: '/DeviceScreen'),
+      );
+      Navigator.of(context).push(route);
+    }).catchError((e) {
+      Snackbar.show(ABC.c, prettyException("Connect Error:", e),
+          success: false);
+    });
+  }
 
   Future onRefresh() {
     // Method to handle refresh action.
@@ -179,8 +191,10 @@ class _ScanScreenState extends State<ScanScreen> {
             device: d,
             onOpen: () => Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => DeviceScreen(devices: [d]), // new method of rerouting, previously kase one device lang, now list na
-                settings: RouteSettings(name: '/DeviceScreen'),
+                builder: (context) => DeviceScreen(devices: [
+                  d
+                ]), // new method of rerouting, previously kase one device lang, now list na
+                settings: const RouteSettings(name: '/DeviceScreen'),
               ),
             ),
             onConnect: () => onConnectPressed(d),
