@@ -111,7 +111,6 @@ class _ScanResultTileState extends State<ScanResultTile> {
   Widget _buildConnectButton(BuildContext context) {
     return ElevatedButton(
       // Display 'OPEN' if connected, 'CONNECT' otherwise.
-      child: isConnected ? const Text('OPEN') : const Text('CONNECT'),
       // Set button style based on connection state.
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
@@ -120,6 +119,7 @@ class _ScanResultTileState extends State<ScanResultTile> {
       // Enable button tap only if device is connectable.
       onPressed:
           (widget.result.advertisementData.connectable) ? widget.onTap : null,
+      child: isConnected ? const Text('OPEN') : const Text('CONNECT'),
     );
   }
 
