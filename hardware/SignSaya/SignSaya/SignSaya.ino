@@ -70,14 +70,14 @@ uint8_t core0Tel = 0;
 
 volatile unsigned long lastIMUrun = millis();
 
-void pinkyFingerFunc(void *pvParameters);
-void ringFingerFunc(void *pvParameters);
-void middleFingerFunc(void *pvParameters);
-void indexFingerFunc(void *pvParameters);
-void thumbFingerFunc(void *pvParameters);
-void accelGyroFunc(void *pvParameters);
-void dataParser(void *pvParameters);
-void bleSender(void *pvParameters);
+// void pinkyFingerFunc(void *pvParameters);
+// void ringFingerFunc(void *pvParameters);
+// void middleFingerFunc(void *pvParameters);
+// void indexFingerFunc(void *pvParameters);
+// void thumbFingerFunc(void *pvParameters);
+// void accelGyroFunc(void *pvParameters);
+// void dataParser(void *pvParameters);
+// void bleSender(void *pvParameters);
 
 #ifndef USE_ICM
 // Interrupt Service Routine (ISR)
@@ -142,9 +142,9 @@ void setup() {
   thumbQueue = xQueueCreate(FINGER_QUEUE_LENGTH, sizeof(uint8_t));
 
   handQueue = xQueueCreate(HAND_QUEUE_LENGTH, sizeof(handData_t));
-  IMUQueue = xQueueCreate(IMU_QUEUE_LENGTH, sizeof(IMUDATATYPE));
+  IMUQueue = xQueueCreate(IMU_QUEUE_LENGTH, sizeof(quaternion_t));
 
-  xTaskCreatePinnedToCore(&bleChecker, "bleBoss", 10240, NULL, 1, NULL, SYSTEMCORE);
+  xTaskCreate(&bleChecker, "bleBoss", 10240, NULL, 1, NULL);
 #ifdef USE_LOGGING
   xTaskCreatePinnedToCore(&telPrint, "telPrint", 10240, NULL, 1, NULL, SYSTEMCORE);
 
@@ -301,23 +301,14 @@ void fingerSender(void *pvParameters) {
 }
 
 void accelGyroSender(void *pvParameters) {
-#ifdef use_ICM
   quaternion_t imuData;
-#else
-  angleData_t imuData;
-#endif
-  ;
   uint32_t notificationValue;
 
   for (;;) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     // Serial.println("Sending IMU Data...");
     if (xQueueReceive(IMUQueue, &imuData, FINGER_QUEUE_WAIT) == pdPASS) {
-#ifdef use_ICM
-      uint8_t data[4] = { imuData.q1, imuData.q2, imuData.q3, imuData.q0 };
-#else
-      uint8_t data[3] = { imuData.angleX, imuData.angleY, imuData.angleZ };
-#endif
+      uint8_t data[4] = { imuData.x, imuData.y, imuData.z, imuData.w };
       // Serial.println(sizeof(data));
       writeHZ++;
       ble.imuWrite(data);
@@ -328,7 +319,7 @@ void accelGyroSender(void *pvParameters) {
 void accelGyroFunc(void *pvParameters) {
 
   uint32_t notificationValue;
-  IMUDATATYPE imuData;
+  quaternion_t imuData;
 
   bool ledState = false;
   lastIMUrun = millis();
@@ -346,8 +337,8 @@ void accelGyroFunc(void *pvParameters) {
       while (ACCEL.checkDataReady()) {
       }
       imuData = ACCEL.getData();
-      uint8_t data[] = { imuData.q1, imuData.q2, imuData.q3, imuData.q0 };
-      ble.imuWrite(data);
+      xQueueSend(IMUQueue, &imuData, pdMS_TO_TICKS(IMU_QUEUE_WAIT));
+
       lastIMUrun = millis();
     }
 
@@ -462,7 +453,7 @@ void telPrint(void *pvParameters) {
     Serial.print(readHZ);
     Serial.print(",");
     Serial.println(writeHZ);
-    digitalWrite(BLUETOOTH_INDICATOR, ledState);
+    // digitalWrite(BLUETOOTH_INDICATOR, ledState);
 
     ledState = !ledState;
     core0Tel = 0;

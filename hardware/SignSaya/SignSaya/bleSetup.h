@@ -131,7 +131,7 @@ public:
   }
 
   void imuWrite(uint8_t* imuData) {
-    imuLane->setValue(imuData, sizeof(imuData));
+    imuLane->setValue(imuData, 4);
     imuLane->notify();
   }
 

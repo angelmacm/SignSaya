@@ -95,7 +95,7 @@ void dmpDataReady() {
 
 class accelSensor {
 private:
-  angleData_t angles;
+  quaternion_t angles;
 public:
 #ifdef USE_SPI
   void begin(const uint8_t SDI_PIN, const uint8_t SCK_PIN, const uint8_t SDO_PIN, const uint8_t CS_PIN) {
@@ -143,13 +143,14 @@ public:
     devStatus = mpu.dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
-    mpu.setXGyroOffset(-42);
-    mpu.setYGyroOffset(-18);
-    mpu.setZGyroOffset(83);
-    mpu.setXAccelOffset(-2977);
-    mpu.setYAccelOffset(-1881);
-    mpu.setZAccelOffset(4569);
+    mpu.setXGyroOffset(214);
+    mpu.setYGyroOffset(-16);
+    mpu.setZGyroOffset(-32);
+    mpu.setXAccelOffset(-687);
+    mpu.setYAccelOffset(-3881);
+    mpu.setZAccelOffset(925);
     // make sure it worked (returns 0 if so)
+
     if (devStatus == 0) {
       // Calibration Time: generate offsets and calibrate our MPU6050
       // mpu.CalibrateAccel(6);
@@ -192,18 +193,17 @@ public:
   };
 
 
-  angleData_t getData() {
+  quaternion_t getData() {
 
     // if programming failed, don't try to do anything
     if (!dmpReady) return angles;
     // read a packet from FIFO
     if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) {  // Get the Latest packet
       mpu.dmpGetQuaternion(&q, fifoBuffer);
-      mpu.dmpGetGravity(&gravity, &q);
-      mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-      angles.angleX = static_cast<uint8_t>(255.0f * (((ypr[0] * constantMulti) + 180) / 360));
-      angles.angleY = static_cast<uint8_t>(255.0f * (((ypr[1] * constantMulti) + 180) / 360));
-      angles.angleZ = static_cast<uint8_t>(255.0f * (((ypr[2] * constantMulti) + 180) / 360));
+      angles.x = static_cast<uint8_t>(255.0f * (((q.x * constantMulti) + 180) / 360));
+      angles.y = static_cast<uint8_t>(255.0f * (((q.y * constantMulti) + 180) / 360));
+      angles.z = static_cast<uint8_t>(255.0f * (((q.z * constantMulti) + 180) / 360));
+      angles.w = static_cast<uint8_t>(255.0f * (((q.w * constantMulti) + 180) / 360));
       return angles;
     }
     return angles;
