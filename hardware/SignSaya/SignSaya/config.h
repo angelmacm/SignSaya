@@ -4,6 +4,11 @@
 // #define USE_TFLITE
 // #define USE_USBOTG
 // #define USE_FAT
+#define USE_TRAIN
+
+#ifdef USE_TRAIN
+#define TRAIN_QUEUE_LENGTH 100
+#endif
 
 /*
     DO NOT USE PINS IN THIS LIST
@@ -48,6 +53,7 @@
 #define IMU_QUEUE_LENGTH 15
 #define IMU_QUEUE_WAIT 1
 #define FINGER_QUEUE_WAIT 1
+#define FINGER_QUEUE_RECEIVE_WAIT 0
 
 #define FINGER_STACK_SIZE 1280
 #define MPU_STACK_SIZE 2560

@@ -29,7 +29,7 @@ class MyCallbacks : public BLECharacteristicCallbacks {
 
     if (value.length() > 0) {
       // if (value == "calibrate") {
-        calibrationRequest = true;
+      calibrationRequest = true;
       // }
     }
   }
@@ -92,29 +92,16 @@ public:
 
     fingerLane->addDescriptor(new BLE2902());
     imuLane->addDescriptor(new BLE2902());
-    // requestLane->addDescriptor(new BLE2902());
-
-    // BLECharacteristic* pRxCharacteristic = pService->createCharacteristic(
-    //   CHARACTERISTIC_UUID_RX,
-    //   BLECharacteristic::PROPERTY_READ |
-    //   BLECharacteristic::PROPERTY_WRITE
-    //   BLECharacteristic::PROPERTY_NOTIFY |
-    //   //BLECharacteristic::PROPERTY_INDICATE
-    // );
 
     requestLane->setCallbacks(new MyCallbacks());
 
     // Start the service
-    // fingerLane->setValue("Fingers");
-    // imuLane->setValue("IMU");
     pService->start();
 
     // Start advertising
     BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(SERVICE_UUID);
-    //pAdvertising->setScanResponse(false);
     pAdvertising->setScanResponse(true);
-    //pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
     pAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
     pAdvertising->setMinPreferred(0x12);
 #ifdef USE_LOGGING
@@ -124,8 +111,6 @@ public:
   }
 
   void fingerWrite(uint8_t* message) {
-    // long startTime = micros();
-
     fingerLane->setValue(message, 5);
     fingerLane->notify();
   }

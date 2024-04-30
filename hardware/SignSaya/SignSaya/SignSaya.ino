@@ -40,6 +40,12 @@ QueueHandle_t thumbQueue;
 QueueHandle_t handQueue;
 QueueHandle_t IMUQueue;
 
+#ifdef USE_TRAIN
+QueueHandle_t fingerTrainQueue;
+QueueHandle_t imuTrainQueue;
+TaskHandle_t trainPrinter;
+#endif
+
 TaskHandle_t imuTask;
 TaskHandle_t imuChecker;
 TaskHandle_t pinkyTask;
@@ -69,15 +75,6 @@ uint8_t core1Tel = 0;
 uint8_t core0Tel = 0;
 
 volatile unsigned long lastIMUrun = millis();
-
-// void pinkyFingerFunc(void *pvParameters);
-// void ringFingerFunc(void *pvParameters);
-// void middleFingerFunc(void *pvParameters);
-// void indexFingerFunc(void *pvParameters);
-// void thumbFingerFunc(void *pvParameters);
-// void accelGyroFunc(void *pvParameters);
-// void dataParser(void *pvParameters);
-// void bleSender(void *pvParameters);
 
 #ifndef USE_ICM
 // Interrupt Service Routine (ISR)
@@ -144,6 +141,11 @@ void setup() {
   handQueue = xQueueCreate(HAND_QUEUE_LENGTH, sizeof(handData_t));
   IMUQueue = xQueueCreate(IMU_QUEUE_LENGTH, sizeof(quaternion_t));
 
+#ifdef USE_TRAIN
+  fingerTrainQueue = xQueueCreate(TRAIN_QUEUE_LENGTH, sizeof(handData_t));
+  imuTrainQueue = xQueueCreate(TRAIN_QUEUE_LENGTH, sizeof(quaternion_t));
+#endif
+
   xTaskCreate(&bleChecker, "bleBoss", 10240, NULL, 1, NULL);
 #ifdef USE_LOGGING
   xTaskCreatePinnedToCore(&telPrint, "telPrint", 10240, NULL, 1, NULL, SYSTEMCORE);
@@ -183,12 +185,46 @@ void calibrateGloves(void *pvParameters) {
     middleFinger.saveCalibration();
     indexFinger.saveCalibration();
     thumbFinger.saveCalibration();
+    vTaskDelay(pdMS_TO_TICKS(16));
 #ifdef USE_LOGGING
     Serial.println("Gloves calibration done.");
 #endif
   }
 }
 
+#ifdef USE_TRAIN
+void trainPrintFunc(void *pvParameters) {
+  Serial.begin(115200);
+  handData_t fingerData;
+  quaternion_t imuData;
+  for (;;) {
+    int fingerReady = xQueueReceive(fingerTrainQueue, &fingerData, 0);
+    int imuReady = xQueueReceive(imuTrainQueue, &imuData, 0);
+    if (fingerReady == pdPASS || imuReady == pdPASS) {
+      Serial.print(micros());
+      Serial.print(",");
+      Serial.print(fingerData.thumb);
+      Serial.print(",");
+      Serial.print(fingerData.index);
+      Serial.print(",");
+      Serial.print(fingerData.middle);
+      Serial.print(",");
+      Serial.print(fingerData.ring);
+      Serial.print(",");
+      Serial.print(fingerData.pinky);
+      Serial.print(",");
+      Serial.print(imuData.x);
+      Serial.print(",");
+      Serial.print(imuData.y);
+      Serial.print(",");
+      Serial.print(imuData.z);
+      Serial.print(",");
+      Serial.println(imuData.w);
+    }
+    vTaskDelay(pdMS_TO_TICKS(1));
+  }
+}
+#endif
 
 void bleChecker(void *pvParameters) {
 
@@ -212,7 +248,11 @@ void bleChecker(void *pvParameters) {
 
         xTaskCreatePinnedToCore(&accelGyroSender, "mpuSender", MPU_STACK_SIZE, NULL, SYSTEM_PRIORITY, &imuSenderTask, SYSTEMCORE);
         xTaskCreatePinnedToCore(&fingerSender, "fingerSender", 10240, NULL, SYSTEM_PRIORITY, &parserTask, SYSTEMCORE);
-        xTaskCreatePinnedToCore(&calibrateGloves, "calibrateGlove", 10240, NULL, SYSTEM_PRIORITY, &calibrateGlovesTask, SYSTEMCORE);
+        xTaskCreate(&calibrateGloves, "calibrateGlove", 10240, NULL, SYSTEM_PRIORITY, &calibrateGlovesTask);
+
+#ifdef USE_TRAIN
+        xTaskCreate(&trainPrintFunc, "trainPrinterTaskk", 10240, NULL, SYSTEM_PRIORITY, &trainPrinter);
+#endif
 
         initializedTasks = true;
         isRunning = true;
@@ -271,27 +311,27 @@ void bleChecker(void *pvParameters) {
 }
 
 void fingerSender(void *pvParameters) {
-  uint8_t pinky;
-  uint8_t ring;
-  uint8_t middle;
-  uint8_t index;
-  uint8_t thumb;
+  handData_t fingers;
+  Serial.begin(115200);
   for (;;) {
     // unsigned long start = micros();
     //Receive data from gloves queue
-    int pinkyStatus = xQueueReceive(pinkyQueue, &pinky, FINGER_QUEUE_WAIT);
-    int ringStatus = xQueueReceive(ringQueue, &ring, FINGER_QUEUE_WAIT);
-    int middleStatus = xQueueReceive(middleQueue, &middle, FINGER_QUEUE_WAIT);
-    int indexStatus = xQueueReceive(indexQueue, &index, FINGER_QUEUE_WAIT);
-    int thumbStatus = xQueueReceive(thumbQueue, &thumb, FINGER_QUEUE_WAIT);
+    int pinkyStatus = xQueueReceive(pinkyQueue, &fingers.pinky, FINGER_QUEUE_RECEIVE_WAIT);
+    int ringStatus = xQueueReceive(ringQueue, &fingers.ring, FINGER_QUEUE_RECEIVE_WAIT);
+    int middleStatus = xQueueReceive(middleQueue, &fingers.middle, FINGER_QUEUE_RECEIVE_WAIT);
+    int indexStatus = xQueueReceive(indexQueue, &fingers.index, FINGER_QUEUE_RECEIVE_WAIT);
+    int thumbStatus = xQueueReceive(thumbQueue, &fingers.thumb, FINGER_QUEUE_RECEIVE_WAIT);
     if ((pinkyStatus == pdTRUE) || (ringStatus == pdTRUE) || (middleStatus == pdTRUE) || (indexStatus == pdTRUE) || (thumbStatus == pdTRUE)) {
-      uint8_t sendData[] = { pinky,
-                             ring,
-                             middle,
-                             index,
-                             thumb };
+      uint8_t sendData[] = { fingers.pinky,
+                             fingers.ring,
+                             fingers.middle,
+                             fingers.index,
+                             fingers.thumb };
       // Serial.println(sizeof(sendData));
       ble.fingerWrite(sendData);
+#ifdef USE_TRAIN
+      xQueueSend(fingerTrainQueue, &fingers, pdMS_TO_TICKS(FINGER_QUEUE_WAIT));
+#endif
     } else {
       // Serial.println("No Data to be saved");
     }
@@ -351,6 +391,9 @@ void accelGyroFunc(void *pvParameters) {
 
 #endif
     readHZ++;
+#ifdef USE_TRAIN
+    xQueueSend(imuTrainQueue, &imuData, pdMS_TO_TICKS(IMU_QUEUE_WAIT));
+#endif
     xTaskNotifyGive(imuSenderTask);
   }
 }
