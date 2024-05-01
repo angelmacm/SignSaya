@@ -58,10 +58,10 @@ class _CharacteristicTileState extends State<CharacteristicTile> {
         print(value); // Log the value.
       }
     });
-    // Future.delayed(Duration(seconds: 1), () {
-    //   //print("Now Subscribed!");
-    //   onSubscribePressed();
-    // });
+    Future.delayed(const Duration(seconds: 6), () {
+      //print("Now Subscribed!");
+      onSubscribePressed(context);
+    });
   }
 
   @override

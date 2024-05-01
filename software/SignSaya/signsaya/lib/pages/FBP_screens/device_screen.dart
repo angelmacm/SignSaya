@@ -62,7 +62,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
             _rssiMap[device] = rssi;
           });
         }
-        Future.delayed(const Duration(seconds: 2), () {
+        Future.delayed(const Duration(seconds: 4), () { // connect to get service automatically
           if (mounted && !_isDiscoveringServicesMap[device]!) {
             onDiscoverServicesPressed(device);
           }

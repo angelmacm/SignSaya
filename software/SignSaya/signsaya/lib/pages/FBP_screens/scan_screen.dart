@@ -41,13 +41,15 @@ class _ScanScreenState extends State<ScanScreen> {
       if (mounted) {
         // Checking if widget is mounted before calling setState.
         setState(() {
-          for (ScanResult result in _scanResults) {
-            if (result.device.remoteId ==
-                const DeviceIdentifier("84:FC:E6:6A:C0:BD")) {
-              print("Found the Mac Device");
-              onConnectPressed(result.device);
-            }
-          }
+          //auto connect here (on loop)
+          // for (ScanResult result in _scanResults) {
+          //   if (result.device.remoteId ==
+          //       const DeviceIdentifier("84:FC:E6:6A:C0:BD")) {
+          //     print("Found the Mac Device");
+          //     onConnectPressed(result.device);
+          //     break;
+          //   }
+          // }
         }); // Updating UI.
       }
     }, onError: (e) {
@@ -85,15 +87,33 @@ class _ScanScreenState extends State<ScanScreen> {
     try {
       await FlutterBluePlus.startScan(
           timeout:
-              const Duration(seconds: 15)); // Starting scan with a timeout.
+              const Duration(seconds: 25)); // Starting scan with a timeout.
     } catch (e) {
       Snackbar.show(ABC.b, prettyException("Start Scan Error:", e),
           success: false); // Showing error message.
     }
     if (mounted) {
       // Checking if widget is mounted before calling setState.
-      setState(() {}); // Updating UI.
+      setState(() {
+        // auto connect
+        for (ScanResult result in _scanResults) {
+          if (result.device.remoteId ==
+              const DeviceIdentifier("84:FC:E6:6A:C0:BD")) {
+            print("Found the Mac Device");
+            onConnectPressed(result.device);
+            break; // Stop iterating after connecting to the device
+          }
+        }
+      }); // Updating UI.
     }
+
+    // for (ScanResult result in _scanResults) {
+    //     if (result.device.remoteId ==
+    //         const DeviceIdentifier("84:FC:E6:6A:C0:BD")) {
+    //       print("Found the Mac Device");
+    //       onConnectPressed(result.device);
+    //     }
+    //   }
   }
 
   Future onStopPressed() async {
