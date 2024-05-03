@@ -177,6 +177,13 @@ void calibrateGloves(void *pvParameters) {
       middleFinger.calibrate();
       indexFinger.calibrate();
       thumbFinger.calibrate();
+      #ifdef USE_LOGGING
+      Serial.print("Calibrating... ");
+      Serial.print(millis() - lastRun);
+      Serial.print("/");
+      Serial.println(CALIBRATION_TIME * 1000);
+      #endif
+      vTaskDelay(pdMS_TO_TICKS(16));
     }
     ACCEL.init();
     isRunning = false;
@@ -197,29 +204,26 @@ void trainPrintFunc(void *pvParameters) {
   Serial.begin(115200);
   handData_t fingerData;
   quaternion_t imuData;
+  char str[37];
   for (;;) {
     int fingerReady = xQueueReceive(fingerTrainQueue, &fingerData, 0);
     int imuReady = xQueueReceive(imuTrainQueue, &imuData, 0);
     if (fingerReady == pdPASS || imuReady == pdPASS) {
-      Serial.print(micros());
-      Serial.print(",");
-      Serial.print(fingerData.thumb);
-      Serial.print(",");
-      Serial.print(fingerData.index);
-      Serial.print(",");
-      Serial.print(fingerData.middle);
-      Serial.print(",");
-      Serial.print(fingerData.ring);
-      Serial.print(",");
-      Serial.print(fingerData.pinky);
-      Serial.print(",");
-      Serial.print(imuData.x);
-      Serial.print(",");
-      Serial.print(imuData.y);
-      Serial.print(",");
-      Serial.print(imuData.z);
-      Serial.print(",");
-      Serial.println(imuData.w);
+      #ifdef USE_LOGGING
+      sprintf(
+        str,
+        "%d,%d,%d,%d,%d,%d,%d,%d,%d",
+        fingerData.thumb,
+        fingerData.index,
+        fingerData.middle,
+        fingerData.ring,
+        fingerData.pinky,
+        imuData.x,
+        imuData.y,
+        imuData.z,
+        imuData.w);
+      Serial.println(str);
+      #endif
     }
     vTaskDelay(pdMS_TO_TICKS(1));
   }
@@ -248,10 +252,10 @@ void bleChecker(void *pvParameters) {
 
         xTaskCreatePinnedToCore(&accelGyroSender, "mpuSender", MPU_STACK_SIZE, NULL, SYSTEM_PRIORITY, &imuSenderTask, SYSTEMCORE);
         xTaskCreatePinnedToCore(&fingerSender, "fingerSender", 10240, NULL, SYSTEM_PRIORITY, &parserTask, SYSTEMCORE);
-        xTaskCreate(&calibrateGloves, "calibrateGlove", 10240, NULL, SYSTEM_PRIORITY, &calibrateGlovesTask);
+        xTaskCreatePinnedToCore(&calibrateGloves, "calibrateGlove", 10240, NULL, SYSTEM_PRIORITY, &calibrateGlovesTask, SYSTEMCORE);
 
 #ifdef USE_TRAIN
-        xTaskCreate(&trainPrintFunc, "trainPrinterTaskk", 10240, NULL, SYSTEM_PRIORITY, &trainPrinter);
+        xTaskCreatePinnedToCore(&trainPrintFunc, "trainPrinterTaskk", 10240, NULL, SYSTEM_PRIORITY, &trainPrinter, SYSTEMCORE);
 #endif
 
         initializedTasks = true;
@@ -264,6 +268,9 @@ void bleChecker(void *pvParameters) {
 // if it is already intialized, resume the tasks from suspension
 #ifdef USE_ICM
         ACCEL.resetFIFO();
+#endif
+#ifdef USE_TRAIN
+        vTaskResume(trainPrinter);
 #endif
         vTaskResume(pinkyTask);
         vTaskResume(ringTask);
@@ -281,6 +288,9 @@ void bleChecker(void *pvParameters) {
 
 
     } else if (!ble.isConnected() && initializedTasks) {
+#ifdef USE_TRAIN
+      vTaskSuspend(trainPrinter);
+#endif
       vTaskSuspend(pinkyTask);
       vTaskSuspend(ringTask);
       vTaskSuspend(middleTask);
@@ -295,6 +305,9 @@ void bleChecker(void *pvParameters) {
     if (ble.isCalibrateRequest()) {
 #ifdef USE_LOGGING
       Serial.println("Calibration request detected...");
+#endif
+#ifdef USE_TRAIN
+      vTaskSuspend(trainPrinter);
 #endif
       ble.doneCalibrate();
       xTaskNotifyGive(calibrateGlovesTask);
@@ -510,13 +523,6 @@ void telPrint(void *pvParameters) {
     writeHZ = 0;
 
     vTaskDelay(pdMS_TO_TICKS(1000));
-    // for (int index = 0; index < 255; index++) {
-    //   analogWrite(BLUETOOTH_INDICATOR, index);
-    //   vTaskDelay(pdMS_TO_TICKS(2));
-    // }
-    // for (int index = 255; index > 0; index--) {
-    //   analogWrite(BLUETOOTH_INDICATOR, index);
-    //   vTaskDelay(pdMS_TO_TICKS(2));
   }
 }
 #endif  // USE_LOGGING

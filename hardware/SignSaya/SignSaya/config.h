@@ -2,8 +2,6 @@
 // #define USE_ICM // 6.9kb bigger than MPU6050
 // #define USE_LOGGING // 2.8kb bigger than with no logging
 // #define USE_TFLITE
-// #define USE_USBOTG
-// #define USE_FAT
 #define USE_TRAIN
 
 #ifdef USE_TRAIN
@@ -74,4 +72,5 @@ constexpr char bluetoothName[] = "SignSaya";
 
 // OTHER VARIABLES
 #define MA_TIME_SPAN 1          // Time in seconds that spans the MA Filter
+#define ARRAY_LENGTH FINGER_SAMPLING_RATE * MA_TIME_SPAN
 uint8_t maxFingerValue = 255;  //max value of finger output for dataset
