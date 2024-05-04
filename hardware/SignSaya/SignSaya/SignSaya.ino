@@ -177,12 +177,12 @@ void calibrateGloves(void *pvParameters) {
       middleFinger.calibrate();
       indexFinger.calibrate();
       thumbFinger.calibrate();
-      #ifdef USE_LOGGING
+#ifdef USE_LOGGING
       Serial.print("Calibrating... ");
       Serial.print(millis() - lastRun);
       Serial.print("/");
       Serial.println(CALIBRATION_TIME * 1000);
-      #endif
+#endif
       vTaskDelay(pdMS_TO_TICKS(16));
     }
     ACCEL.init();
@@ -209,7 +209,6 @@ void trainPrintFunc(void *pvParameters) {
     int fingerReady = xQueueReceive(fingerTrainQueue, &fingerData, 0);
     int imuReady = xQueueReceive(imuTrainQueue, &imuData, 0);
     if (fingerReady == pdPASS || imuReady == pdPASS) {
-      #ifdef USE_LOGGING
       sprintf(
         str,
         "%d,%d,%d,%d,%d,%d,%d,%d,%d",
@@ -223,7 +222,6 @@ void trainPrintFunc(void *pvParameters) {
         imuData.z,
         imuData.w);
       Serial.println(str);
-      #endif
     }
     vTaskDelay(pdMS_TO_TICKS(1));
   }
@@ -325,7 +323,7 @@ void bleChecker(void *pvParameters) {
 
 void fingerSender(void *pvParameters) {
   handData_t fingers;
-  Serial.begin(115200);
+  // Serial.begin(115200);
   for (;;) {
     // unsigned long start = micros();
     //Receive data from gloves queue
@@ -335,11 +333,11 @@ void fingerSender(void *pvParameters) {
     int indexStatus = xQueueReceive(indexQueue, &fingers.index, FINGER_QUEUE_RECEIVE_WAIT);
     int thumbStatus = xQueueReceive(thumbQueue, &fingers.thumb, FINGER_QUEUE_RECEIVE_WAIT);
     if ((pinkyStatus == pdTRUE) || (ringStatus == pdTRUE) || (middleStatus == pdTRUE) || (indexStatus == pdTRUE) || (thumbStatus == pdTRUE)) {
-      uint8_t sendData[] = { fingers.pinky,
-                             fingers.ring,
-                             fingers.middle,
+      uint8_t sendData[] = { fingers.thumb,
                              fingers.index,
-                             fingers.thumb };
+                             fingers.middle,
+                             fingers.ring,
+                             fingers.pinky };
       // Serial.println(sizeof(sendData));
       ble.fingerWrite(sendData);
 #ifdef USE_TRAIN
@@ -380,34 +378,28 @@ void accelGyroFunc(void *pvParameters) {
     // Serial.println("MPU SENDER");
 #ifdef USE_ICM
 
-    if (millis() - lastIMUrun >= 200) {
-#ifdef USE_LOGGING
-      Serial.println("Resetting FIFO");
-#endif
-      ACCEL.resetFIFO();
-      lastIMUrun = millis();
-    } else {
-      while (ACCEL.checkDataReady()) {
-      }
+    while (ACCEL.checkDataReady()) {
       imuData = ACCEL.getData();
       xQueueSend(IMUQueue, &imuData, pdMS_TO_TICKS(IMU_QUEUE_WAIT));
+      xTaskNotifyGive(imuSenderTask);
 
-      lastIMUrun = millis();
+#ifdef USE_TRAIN
+      xQueueSend(imuTrainQueue, &imuData, pdMS_TO_TICKS(IMU_QUEUE_WAIT));
+#endif
     }
-
-    vTaskDelay(pdMS_TO_TICKS(10));
-
+    vTaskDelay(pdMS_TO_TICKS(1));
 #else
     ulTaskGenericNotifyTake(0, pdTRUE, portMAX_DELAY);
     imuData = ACCEL.getData();
     xQueueSend(IMUQueue, &imuData, pdMS_TO_TICKS(IMU_QUEUE_WAIT));
+    xTaskNotifyGive(imuSenderTask);
 
-#endif
-    readHZ++;
+
 #ifdef USE_TRAIN
     xQueueSend(imuTrainQueue, &imuData, pdMS_TO_TICKS(IMU_QUEUE_WAIT));
 #endif
-    xTaskNotifyGive(imuSenderTask);
+#endif
+    readHZ++;
   }
 }
 

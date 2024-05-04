@@ -12,17 +12,19 @@ ICM_20948_I2C myICM;  // Otherwise create an ICM_20948_I2C object
 class accelSensor {
 private:
   quaternion_t results;
+  icm_20948_DMP_data_t data;
+
 
 public:
 #ifdef USE_SPI
-  void begin(const uint8_t SDI_PIN, const uint8_t SCK_PIN, const uint8_t SDO_PIN, const uint8_t CS_PIN, const uint8_t INTERRUPT_PIN) {
+  void begin(const uint8_t SDI_PIN, const uint8_t SCK_PIN, const uint8_t SDO_PIN, const uint8_t CS_PIN) {
     spiObj = new SPIClass(HSPI);
-    spiObj->begin(SCK_PIN, SDO_PIN, SDI_PIN, CS_PIN);
-    pinMode(spiObj->pinSS(), OUTPUT);
+    spiObj->begin(SCK_PIN, SDI_PIN, SDO_PIN, CS_PIN);
+    pinMode(CS_PIN, OUTPUT);
     init();
   }
 #else
-  void begin(const uint8_t SDA_PIN, const uint8_t SCL_PIN, const uint8_t INTERRUPT_PIN) {
+  void begin(const uint8_t SDA_PIN, const uint8_t SCL_PIN) {
     Wire.begin(46, 3);
     Wire.setClock(400000);  // 400kHz I2C clock. Comment this line if having compilation difficulties
     init();
@@ -133,6 +135,7 @@ public:
   }
 
   bool checkDataReady() {
+    myICM.readDMPdataFromFIFO(&data);
     return ((myICM.status == ICM_20948_Stat_Ok) || (myICM.status == ICM_20948_Stat_FIFOMoreDataAvail));
   }
 
@@ -141,10 +144,6 @@ public:
   }
 
   quaternion_t getData() {
-    icm_20948_DMP_data_t data;
-    myICM.readDMPdataFromFIFO(&data);
-
-
 
     if ((data.header & DMP_header_bitmap_Quat9) > 0)  // We have asked for orientation data so we should receive Quat9
     {
@@ -158,10 +157,10 @@ public:
       double q3 = ((double)data.Quat9.Data.Q3) / 1073741824.0;  // Convert to double. Divide by 2^30
       double q0 = sqrt(1.0 - ((q1 * q1) + (q2 * q2) + (q3 * q3)));
 
-      results.q0 = map(q0, -1.0, 1, 0, 255);
-      results.q1 = map(q1, -1.0, 1, 0, 255);
-      results.q2 = map(q2, -1.0, 1, 0, 255);
-      results.q3 = map(q3, -1.0, 1, 0, 255);
+      results.x = (uint8_t)((q1 + 1.0f) * 127.5f);
+      results.y = (uint8_t)((q2 + 1.0f) * 127.5f);
+      results.z = (uint8_t)((q3 + 1.0f) * 127.5f);
+      results.w = (uint8_t)((q0 + 1.0f) * 127.5f);
 #ifdef USE_LOGGING
       Serial.print(q1);
       Serial.print(", ");

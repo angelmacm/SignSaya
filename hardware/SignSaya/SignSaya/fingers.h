@@ -7,9 +7,6 @@ private:
   uint16_t maxInputValue = 4095;
   uint8_t pinNumber;
   bool calibrationStarted = false;
-  // uint16_t prevMinInputValue = minInputValue;
-  // uint16_t prevMaxInputValue = maxInputValue;
-  // bool arrayCalibrated = true;
   uint16_t currentValue = 0;
 
   uint8_t mapData(uint16_t dataToBeMapped) {

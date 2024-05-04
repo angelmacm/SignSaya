@@ -77,7 +77,7 @@ VectorFloat gravity;  // [x, y, z]            gravity vector
 float euler[3];       // [psi, theta, phi]    Euler angle container
 float ypr[3];
 uint8_t mappedYPR[3];
-const float constantMulti = 180 / M_PI;  // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
+// const float constantMulti = 180 / M_PI;  // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
 // packet structure for InvenSense teapot demo
 uint8_t teapotPacket[14] = { '$', 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0x00, 0x00, '\r', '\n' };
