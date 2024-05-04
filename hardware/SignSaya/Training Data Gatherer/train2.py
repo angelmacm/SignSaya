@@ -4,7 +4,7 @@ PORTNUMBER = "COM6"
 
 # Configure the serial port
 ser = serial.Serial(
-    port=PORTNUMBER  # Replace 'COM6' with the actual port your ESP32-S3 is connected to
+    port=PORTNUMBER,  # Replace 'COM6' with the actual port your ESP32-S3 is connected to
     baudrate=115200,  # Standard ESP32 baudrate
     timeout=3  # Adjust timeout if needed
 )

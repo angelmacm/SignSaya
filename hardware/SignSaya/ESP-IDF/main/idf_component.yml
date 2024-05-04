@@ -1,0 +1,5 @@
+dependencies:
+  espressif/esp-tflite-micro: "^1.2.0"
+  espressif/arduino-esp32:
+    pre_release: true
+    version: '*'
