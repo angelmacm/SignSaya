@@ -1,8 +1,10 @@
 import serial, time
 
+PORTNUMBER = "COM6"
+
 # Configure the serial port
 ser = serial.Serial(
-    port='COM6',  # Replace 'COM6' with the actual port your ESP32-S3 is connected to
+    port=PORTNUMBER  # Replace 'COM6' with the actual port your ESP32-S3 is connected to
     baudrate=115200,  # Standard ESP32 baudrate
     timeout=3  # Adjust timeout if needed
 )
@@ -11,7 +13,7 @@ ser = serial.Serial(
 if ser.isOpen():
     print("Serial port is open.")
     filename = input("Please Type the filename: ")
-    filename += "COM6"+"_" + str(time.time())
+    filename += PORTNUMBER+"_" + str(time.time())
     print(f"saving the file as {filename}.csv")
     with open(f"{filename}.csv",'a') as currentFile:
         currentFile.write("timestamp,thumb,index,middle,ring,pinky,quaternionX,quaternionY,quaternionZ,quaternionW") 
@@ -25,6 +27,7 @@ if ser.isOpen():
             if data: 
                 with open(f"{filename}.csv",'a') as currentFile:
                     currentFile.write(str(time.time()))
+                    currentFile.write(",")
                     currentFile.write(data) 
                     currentFile.write("\n")
 
