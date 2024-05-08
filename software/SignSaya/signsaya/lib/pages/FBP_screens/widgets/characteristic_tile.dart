@@ -6,6 +6,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // Flutter Blue Plus 
 //import 'package:SignSaya/pages/gloves_calibration.dart'; // Import GlovesCalibration page.
 import '../utils/snackbar.dart'; // Import Snackbar utility.
 import 'descriptor_tile.dart'; // Import DescriptorTile widget.
+import 'package:SignSaya/pages/translation_page.dart';
 
 // Define a tile widget for displaying Bluetooth characteristics.
 class CharacteristicTile extends StatefulWidget {
@@ -130,6 +131,11 @@ class _CharacteristicTileState extends State<CharacteristicTile> {
       //   context,
       //   MaterialPageRoute(builder: (context) => GlovesCalibration()),
       // );
+      Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) =>  const TranslationPage()),
+    );
+
     } catch (e) {
       Snackbar.show(ABC.c, prettyException("Subscribe Error:", e),
           success: false);

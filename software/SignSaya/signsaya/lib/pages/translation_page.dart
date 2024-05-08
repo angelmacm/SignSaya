@@ -368,7 +368,7 @@ class _TranslationPageState extends State<TranslationPage> {
                           // Update the UI state
                           selectedLanguageTop =
                               newValue; // Set the selected dropdown value
-                          translateText("", newValue,
+                          translateText(_topTextController.text, newValue,
                               'top'); // Update top dropdown translation
                         });
                       }
