@@ -62,7 +62,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
             _rssiMap[device] = rssi;
           });
         }
-        Future.delayed(const Duration(seconds: 4), () { // connect to get service automatically
+        Future.delayed(const Duration(seconds: 1), () { // connect to get service automatically
           if (mounted && !_isDiscoveringServicesMap[device]!) {
             onDiscoverServicesPressed(device);
           }
@@ -91,6 +91,18 @@ class _DeviceScreenState extends State<DeviceScreen> {
       await device.connectAndUpdateStream();
       Snackbar.show(ABC.c, "Connect: Success", success: true);
       //print("Connect Pasok");
+      try {
+        _servicesMap[device] = await device.discoverServices();
+        Snackbar.show(
+            ABC.c, "Discover Services: Success for ${device.remoteId.toString()}",
+            success: true);
+      } catch (e) {
+        Snackbar.show(
+            ABC.c,
+            prettyException(
+                "Discover Services Error for ${device.remoteId.toString()}: ", e),
+            success: false);
+      }
     } catch (e) {
       if (e is FlutterBluePlusException &&
           e.code == FbpErrorCode.connectionCanceled.index) {

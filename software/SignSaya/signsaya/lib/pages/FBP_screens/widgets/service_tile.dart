@@ -12,6 +12,9 @@ class ServiceTile extends StatelessWidget {
     required this.characteristicTiles,
   }) : super(key: key);
 
+
+  final String matchUUID1 = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
+ 
   // Bluetooth service to display in the tile.
   final BluetoothService service;
   // List of characteristic tiles associated with the service.
@@ -33,6 +36,7 @@ class ServiceTile extends StatelessWidget {
                 buildUuid(context), // Display the UUID of the service.
               ],
             ),
+            initiallyExpanded: (service.uuid.str.toUpperCase() == matchUUID1 ) ? true : false,
             children: characteristicTiles, // List of characteristic tiles.
           )
         : ListTile(

@@ -86,8 +86,9 @@ class _ScanScreenState extends State<ScanScreen> {
     }
     try {
       await FlutterBluePlus.startScan(
+        withKeywords:["SignSaya"],
           timeout:
-              const Duration(seconds: 25)); // Starting scan with a timeout.
+              const Duration(seconds: 3)); // Starting scan with a timeout.
     } catch (e) {
       Snackbar.show(ABC.b, prettyException("Start Scan Error:", e),
           success: false); // Showing error message.
@@ -98,7 +99,7 @@ class _ScanScreenState extends State<ScanScreen> {
         // auto connect
         for (ScanResult result in _scanResults) {
           if (result.device.remoteId ==
-              const DeviceIdentifier("84:FC:E6:6A:C0:BD")) {
+              const DeviceIdentifier("3C:84:27:CC:42:49")) {
             print("Found the Mac Device");
             onConnectPressed(result.device);
             break; // Stop iterating after connecting to the device
@@ -137,7 +138,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
     // Find the second device by its MAC address
     final String secondDeviceMac =
-        "DC:DA:0C:16:C8:AD"; // second device mac address
+        "3C:84:27:CC:42:9D"; // second device mac address
     final ScanResult secondDeviceResult = _scanResults.firstWhere(
       (result) => result.device.remoteId == secondDeviceMac,
       orElse: () => ScanResult(
@@ -175,7 +176,7 @@ class _ScanScreenState extends State<ScanScreen> {
       // Checking if scanning is not in progress.
       FlutterBluePlus.startScan(
           timeout:
-              const Duration(seconds: 15)); // Starting scan with a timeout.
+              const Duration(seconds: 3)); // Starting scan with a timeout.
     }
     if (mounted) {
       // Checking if widget is mounted before calling setState.
