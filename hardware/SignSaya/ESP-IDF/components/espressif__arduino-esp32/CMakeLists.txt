@@ -96,7 +96,7 @@ set(ARDUINO_ALL_LIBRARIES
   NetBIOS
   Network
   Preferences
-  RainMaker
+  # RainMaker
   SD_MMC
   SD
   SimpleBLE
@@ -159,15 +159,15 @@ set(ARDUINO_LIBRARY_NetBIOS_SRCS libraries/NetBIOS/src/NetBIOS.cpp)
 
 set(ARDUINO_LIBRARY_Preferences_SRCS libraries/Preferences/src/Preferences.cpp)
 
-set(ARDUINO_LIBRARY_RainMaker_SRCS
-  libraries/RainMaker/src/RMaker.cpp
-  libraries/RainMaker/src/RMakerNode.cpp
-  libraries/RainMaker/src/RMakerParam.cpp
-  libraries/RainMaker/src/RMakerDevice.cpp
-  libraries/RainMaker/src/RMakerType.cpp
-  libraries/RainMaker/src/RMakerQR.cpp
-  libraries/RainMaker/src/RMakerUtils.cpp
-  libraries/RainMaker/src/AppInsights.cpp)
+# set(ARDUINO_LIBRARY_RainMaker_SRCS
+#   libraries/RainMaker/src/RMaker.cpp
+#   libraries/RainMaker/src/RMakerNode.cpp
+#   libraries/RainMaker/src/RMakerParam.cpp
+#   libraries/RainMaker/src/RMakerDevice.cpp
+#   libraries/RainMaker/src/RMakerType.cpp
+#   libraries/RainMaker/src/RMakerQR.cpp
+#   libraries/RainMaker/src/RMakerUtils.cpp
+#   libraries/RainMaker/src/AppInsights.cpp)
 
 set(ARDUINO_LIBRARY_SD_MMC_SRCS libraries/SD_MMC/src/SD_MMC.cpp)
 
@@ -321,7 +321,8 @@ function(maybe_add_component component_name)
     if (${component_name} IN_LIST components)
         idf_component_get_property(lib_name ${component_name} COMPONENT_LIB)
         target_link_libraries(${COMPONENT_LIB} PUBLIC ${lib_name})
-    endif()
+      endif()
+    set_target_properties(${COMPONENT_LIB} PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
 endfunction()
 
 if(IDF_TARGET MATCHES "esp32s2|esp32s3" AND CONFIG_TINYUSB_ENABLED)

@@ -2,5 +2,6 @@
     "files.associations": {
         ".fantomasignore": "ignore",
         "ios": "cpp"
-    }
+    },
+    "idf.portWin": "COM20"
 }

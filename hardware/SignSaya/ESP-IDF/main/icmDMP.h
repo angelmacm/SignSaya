@@ -25,8 +25,8 @@ public:
   }
 #else
   void begin(const uint8_t SDA_PIN, const uint8_t SCL_PIN) {
-    Wire.begin(46, 3);
-    Wire.setClock(400000);  // 400kHz I2C clock. Comment this line if having compilation difficulties
+    Wire.begin(46, 3, 400000);
+    // Wire.setClock(400000);  // 400kHz I2C clock. Comment this line if having compilation difficulties
     init();
   }
 #endif
@@ -46,12 +46,12 @@ public:
 #endif
 
 #ifdef USE_LOGGING
-      Serial.print(F("Initialization of the sensor returned: "));
-      Serial.println(myICM.statusString());
+      // Serial.print(F("Initialization of the sensor returned: "));
+      myICM.statusString();
 #endif
       if (myICM.status != ICM_20948_Stat_Ok) {
 #ifdef USE_LOGGING
-        Serial.println(F("Trying again..."));
+        // Serial.println(F("Trying again..."));
 #endif
         AD0_VAL = !AD0_VAL;
         delay(10);
@@ -65,8 +65,8 @@ public:
     // Initialize the DMP. initializeDMP is a weak function. You can overwrite it if you want to e.g. to change the sample rate
     success &= (myICM.initializeDMP() == ICM_20948_Stat_Ok);
 #ifdef USE_LOGGING
-    Serial.print("initializeDMP: ");
-    Serial.println(success);
+    // Serial.print("initializeDMP: ");
+    // Serial.println(success);
 #endif
     // DMP sensor options are defined in ICM_20948_DMP.h
     //    INV_ICM20948_SENSOR_ACCELEROMETER               (16-bit accel)
@@ -119,10 +119,10 @@ public:
 #ifdef USE_LOGGING
     // Check success
     if (success) {
-      Serial.println(F("DMP enabled!"));
+      // Serial.println(F("DMP enabled!"));
     } else {
-      Serial.println(F("Enable DMP failed!"));
-      Serial.println(F("Please check that you have uncommented line 29 (#define ICM_20948_USE_DMP) in ICM_20948_C.h..."));
+      // Serial.println(F("Enable DMP failed!"));
+      // Serial.println(F("Please check that you have uncommented line 29 (#define ICM_20948_USE_DMP) in ICM_20948_C.h..."));
       while (1)
         ;  // Do nothing more
     }
@@ -162,13 +162,13 @@ public:
       results.z = (uint8_t)((q3 + 1.0f) * 127.5f);
       results.w = (uint8_t)((q0 + 1.0f) * 127.5f);
 #ifdef USE_LOGGING
-      Serial.print(q1);
-      Serial.print(", ");
-      Serial.print(q2);
-      Serial.print(", ");
-      Serial.print(q3);
-      Serial.print(", ");
-      Serial.println(q0);
+      // Serial.print(q1);
+      // Serial.print(", ");
+      // Serial.print(q2);
+      // Serial.print(", ");
+      // Serial.print(q3);
+      // Serial.print(", ");
+      // Serial.println(q0);
 #endif
 
       // myICM.resetFIFO();

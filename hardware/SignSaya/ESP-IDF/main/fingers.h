@@ -44,10 +44,10 @@ public:
   void begin(uint8_t fingerPin) {
     pinMode(fingerPin, INPUT);
     pinNumber = fingerPin;
-    Serial.print("Min value: ");
-    Serial.print(minInputValue);
-    Serial.print("Max value: ");
-    Serial.println(maxInputValue);
+    // Serial.print("Min value: ");
+    // Serial.print(minInputValue);
+    // Serial.print("Max value: ");
+    // Serial.println(maxInputValue);
   }
 
   // Main read function - handles scaling of moving average result
@@ -78,9 +78,9 @@ public:
       fingerArray[arrayIndex] = 0;
     }
 
-    Serial.print("Min value: ");
-    Serial.print(minInputValue);
-    Serial.print("Max value: ");
-    Serial.println(maxInputValue);
+    // Serial.print("Min value: ");
+    // Serial.print(minInputValue);
+    // Serial.print("Max value: ");
+    // Serial.println(maxInputValue);
   }
 };

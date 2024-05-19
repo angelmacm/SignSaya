@@ -20,21 +20,16 @@ dependencies:
   espressif/esp-nn:
     component_hash: b32869798bdb40dec6bc99caca48cd65d42f8a9f506b9ab9c598a076f891ede9
     source:
+      pre_release: true
       service_url: https://api.components.espressif.com/
       type: service
     version: 1.0.2
   espressif/esp-sr:
-    component_hash: f2e0e9316ecd263a43f1a0f41578cd363bb41d77b78f8944e0a721232ecb84fc
+    component_hash: 16af25295f531495fe7e36cf2e8c8bb49629be42c38a56f55f4ded825ada0ffc
     source:
       service_url: https://api.components.espressif.com/
       type: service
-    version: 1.7.0
-  espressif/esp-tflite-micro:
-    component_hash: ffe40b7edc5f407f82a55047b7269c036c25106ff830fb9b3231f3b7fecb4915
-    source:
-      service_url: https://api.components.espressif.com/
-      type: service
-    version: 1.2.0
+    version: 1.7.1
   espressif/esp-zboss-lib:
     component_hash: 21adf29145975d0f7af5bd7361af993d8ddaa88aaaf22461a3014dbfc2c11521
     source:
@@ -122,9 +117,21 @@ dependencies:
   espressif__arduino-esp32:
     component_hash: null
     source:
-      path: C:\Developments\esp_arduino_scratch\Hello_world\components\espressif__arduino-esp32
+      path: C:\Users\angel\Downloads\githubRepos\SignSaya\hardware\SignSaya\ESP-IDF\components\espressif__arduino-esp32
       type: local
     version: 3.0.0-rc1
+  espressif__esp-tflite-micro:
+    component_hash: null
+    source:
+      path: C:\Users\angel\Downloads\githubRepos\SignSaya\hardware\SignSaya\ESP-IDF\components\espressif__esp-tflite-micro
+      type: local
+    version: 1.2.0
+  espressif__esp_rainmaker:
+    component_hash: null
+    source:
+      path: C:\Users\angel\Downloads\githubRepos\SignSaya\hardware\SignSaya\ESP-IDF\components\espressif__esp_rainmaker
+      type: local
+    version: 1.1.0
   idf:
     component_hash: null
     source:
@@ -136,6 +143,6 @@ dependencies:
       service_url: https://api.components.espressif.com/
       type: service
     version: 1.14.4
-manifest_hash: a4a04c448d7901681c2346531e0ab8eb7b81807b3ec146435ebb2b08a570fb1d
+manifest_hash: 9aaf0ca8a1cb34eb50e0b2b29c3fd5d755da06bf9d8e0af46f619f45859d16db
 target: esp32s3
 version: 1.0.0
