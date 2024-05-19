@@ -99,7 +99,7 @@ class _ScanScreenState extends State<ScanScreen> {
         // auto connect
         for (ScanResult result in _scanResults) {
           if (result.device.remoteId ==
-              const DeviceIdentifier("3C:84:27:CC:42:49")) {
+              const DeviceIdentifier("3C:84:27:CC:42:4A")) {
             print("Found the Mac Device");
             onConnectPressed(result.device);
             break; // Stop iterating after connecting to the device
@@ -138,7 +138,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
     // Find the second device by its MAC address
     final String secondDeviceMac =
-        "3C:84:27:CC:42:9D"; // second device mac address
+        "3C:84:27:CC:42:9E"; // second device mac address
     final ScanResult secondDeviceResult = _scanResults.firstWhere(
       (result) => result.device.remoteId == secondDeviceMac,
       orElse: () => ScanResult(

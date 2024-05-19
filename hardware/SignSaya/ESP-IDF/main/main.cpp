@@ -199,6 +199,23 @@ void setup() {
   inferTask = xTaskCreateStaticPinnedToCore(aiInferenceFunc, "inferFunc", INFERENCE_STACK_SIZE, NULL, SYSTEM_PRIORITY, inferTaskStack, &inferTaskBuffer, SYSTEMCORE);
   inferParser = xTaskCreateStaticPinnedToCore(aiInferenceParser, "aiSupport", INFERENCE_PARSER_STACK_SIZE, NULL, SYSTEM_PRIORITY, parseTaskStack, &parseTaskBuffer, APPCORE);
   #endif
+  // Start Finger Tasks
+  xTaskCreatePinnedToCore(&pinkyFingerFunc, "pinkyFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &pinkyTask, APPCORE);
+  vTaskDelay(5);
+  xTaskCreatePinnedToCore(&ringFingerFunc, "ringFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &ringTask, APPCORE);
+  vTaskDelay(5);
+  xTaskCreatePinnedToCore(&middleFingerFunc, "middleFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &middleTask, APPCORE);
+  vTaskDelay(5);
+  xTaskCreatePinnedToCore(&indexFingerFunc, "indexFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &indexTask, APPCORE);
+  vTaskDelay(5);
+  xTaskCreatePinnedToCore(&thumbFingerFunc, "thumbFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &thumbTask, APPCORE);
+  xTaskCreatePinnedToCore(&fingerSender, "fingerSender", 10240, NULL, SYSTEM_PRIORITY, &parserTask, SYSTEMCORE);
+  
+  // Start MPU Task
+  xTaskCreatePinnedToCore(&accelGyroFunc, "mpuFunc", MPU_STACK_SIZE, NULL, ACCEL_PRIORITY, &imuTask, APPCORE);
+  #ifndef USE_TFLITE
+  xTaskCreatePinnedToCore(&accelGyroSender, "mpuSender", MPU_STACK_SIZE, NULL, SYSTEM_PRIORITY, &imuSenderTask, SYSTEMCORE);
+  #endif
 }
 
 void loop() {
@@ -248,38 +265,6 @@ void bleChecker(void *pvParameters) {
     // MicroPrintf("Running, Lowest heap: %d", esp_get_minimum_free_heap_size());
     if (ble.isConnected() && !isRunning) {
       // start tasks
-      if (!initializedTasks) {
-
-        // if not yet intialized, create the tasks
-        #ifdef USE_FINGERS
-        xTaskCreatePinnedToCore(&pinkyFingerFunc, "pinkyFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &pinkyTask, APPCORE);
-        vTaskDelay(5);
-        xTaskCreatePinnedToCore(&ringFingerFunc, "ringFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &ringTask, APPCORE);
-        vTaskDelay(5);
-        xTaskCreatePinnedToCore(&middleFingerFunc, "middleFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &middleTask, APPCORE);
-        vTaskDelay(5);
-        xTaskCreatePinnedToCore(&indexFingerFunc, "indexFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &indexTask, APPCORE);
-        vTaskDelay(5);
-        xTaskCreatePinnedToCore(&thumbFingerFunc, "thumbFunc", FINGER_STACK_SIZE, NULL, FINGER_PRIORITY, &thumbTask, APPCORE);
-        xTaskCreatePinnedToCore(&fingerSender, "fingerSender", 10240, NULL, SYSTEM_PRIORITY, &parserTask, SYSTEMCORE);
-        #endif
-        #ifndef USE_TFLITE
-        xTaskCreatePinnedToCore(&accelGyroSender, "mpuSender", MPU_STACK_SIZE, NULL, SYSTEM_PRIORITY, &imuSenderTask, SYSTEMCORE);
-        #endif
-        xTaskCreatePinnedToCore(&accelGyroFunc, "mpuFunc", MPU_STACK_SIZE, NULL, ACCEL_PRIORITY, &imuTask, APPCORE);
-
-#ifdef USE_TRAIN
-        xTaskCreatePinnedToCore(&trainPrintFunc, "trainPrinterTaskk", 10240, NULL, SYSTEM_PRIORITY, &trainPrinter, SYSTEMCORE);
-#endif
-
-        initializedTasks = true;
-        isRunning = true;
-#ifdef USE_LOGGING
-        Serial.println("Tasks successfuly ran");
-#endif
-
-      } else {
-// if it is already intialized, resume the tasks from suspension
 #ifdef USE_ICM
         ACCEL.resetFIFO();
 #endif
@@ -288,6 +273,7 @@ void bleChecker(void *pvParameters) {
 #endif
 #ifdef USE_TFLITE
         vTaskResume(inferTask);
+        vTaskResume(inferParser);
 #endif
         vTaskResume(pinkyTask);
         vTaskResume(ringTask);
@@ -300,15 +286,13 @@ void bleChecker(void *pvParameters) {
 #ifdef USE_LOGGING
         Serial.println("Tasks successfuly ran");
 #endif
-      }
-
-
-    } else if (!ble.isConnected() && initializedTasks) {
+      } else if (!ble.isConnected() && initializedTasks) {
 #ifdef USE_TRAIN
       vTaskSuspend(trainPrinter);
 #endif
 #ifdef USE_TFLITE
       vTaskSuspend(inferTask);
+      vTaskSuspend(inferParser);
 #endif
       vTaskSuspend(pinkyTask);
       vTaskSuspend(ringTask);
@@ -425,7 +409,7 @@ void aiInferenceParser(void *pvParameters){
       }
       // Check for new Data
       // check if the entry is still within the window
-      if(currentEntryNum >= INFERENCE_WINDOW){
+      if(currentEntryNum >= INFERENCE_WINDOW && inferenceArray[0].x != 0 && inferenceArray[0].y != 0 && inferenceArray[0].z != 0 && inferenceArray[0].w != 0){
         if(inferReady == true){
           currentEntryNum = 0;
           // MicroPrintf("[%d, %d, %d, %d]", finalInferenceArray[5],finalInferenceArray[6],finalInferenceArray[7],finalInferenceArray[8]);

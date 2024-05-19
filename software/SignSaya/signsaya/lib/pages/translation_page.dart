@@ -2,7 +2,7 @@ import 'package:flutter/material.dart'; // Importing material package for Flutte
 import 'package:speech_to_text/speech_recognition_result.dart'; // Importing speech recognition result class
 import 'package:speech_to_text/speech_to_text.dart'; // Importing speech to text package
 import 'bluetooth_connection.dart'; // Importing Bluetooth connection class
-import 'gloves_calibration.dart'; // Importing Gloves calibration class
+// import 'gloves_calibration.dart'; // Importing Gloves calibration class
 
 // Importing translator package for language translation
 import 'package:translator/translator.dart';
@@ -15,6 +15,10 @@ import 'package:SignSaya/pages/signsaya_database_config.dart';
 
 // Importing internationalization package for date formatting
 import 'package:intl/intl.dart';
+
+import 'package:SignSaya/pages/FBP_screens/widgets/characteristic_tile.dart';
+
+//new lines for stream builder
 
 class TranslationPage extends StatefulWidget {
   // Define TranslationPage widget as a StatefulWidget
@@ -35,6 +39,24 @@ class _TranslationPageState extends State<TranslationPage> {
 
   TextEditingController _topTextController =
       TextEditingController(); // Text field controller for top text
+
+  final listOfQuestions = <String>[
+    'How can I get there',
+    'What transportation are available here?',
+    'Where is the nearest restroom?',
+    'Is this the correct place? Should I go straight or turn right at the next intersection?',
+    'What are the nice places to visit here',
+    'Where can I find a place to eat?',
+    'Is the food good?',
+    'What are the best spots in the vicinity',
+    'Where can I find a cheap hotel',
+    'How much is the fare?',
+    'Where can I find the terminal',
+    'Where can I find the best souvenir shop?',
+    'What landmark is close to this place',
+    'Could you take a picture of me'
+    ,
+  ];
 
   // Improved dropdown starts here
   String? selectedLanguageTop; // Selected language for top dropdown
@@ -368,7 +390,7 @@ class _TranslationPageState extends State<TranslationPage> {
                           // Update the UI state
                           selectedLanguageTop =
                               newValue; // Set the selected dropdown value
-                          translateText(_topTextController.text, newValue,
+                          translateText("", newValue,
                               'top'); // Update top dropdown translation
                         });
                       }
@@ -480,6 +502,73 @@ class _TranslationPageState extends State<TranslationPage> {
                     translatedTextTop, // Translated text content
                     textAlign: TextAlign.center, // Center align text
                   ),
+                  SizedBox(height: screenSize.height * 0.0355), // Spacer
+                  StreamBuilder<List<int>>(
+                    stream: CharacteristicTile.sensorValuesStream,
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        final sensorValues = snapshot.data!;
+                        bool isPassed = false;
+                        var previousData = 0;
+                        var previousSent = 0;
+                        var tempValue = 0;
+                        var previousConfidence = 0;
+                        if (sensorValues.isNotEmpty) {
+                          var index = sensorValues[0]; // Assuming sensorValues has only one value for simplicity
+                          var confidenceLevel = sensorValues[1];
+                          if(previousConfidence < confidenceLevel){
+                            // tempValue = confidenceLevel;
+                            previousConfidence = confidenceLevel;
+                            if(previousSent == index){
+                              isPassed = false;
+                            }
+                            isPassed = true;
+                            previousData = index;
+                          } else {
+                            tempValue = confidenceLevel;
+                            confidenceLevel = previousConfidence;
+                            previousConfidence = tempValue;
+                            tempValue = index;
+                            index = previousData;
+                            previousData = tempValue;
+                            
+                          }
+                          if (index >= 0 && index < listOfQuestions.length && confidenceLevel/255 >= 0.45 && isPassed) {
+                            // print(confidenceLevel/255);
+                            final finalQuestion = listOfQuestions[index];
+                            //_topTextController.text = finalQuestion;
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              _topTextController.text =
+                                  finalQuestion; // Set finalQuestion to TextField
+                            });
+                            // return Text(
+                            //   // Display sensor values
+                            //   finalQuestion,
+                            //   textAlign: TextAlign.center, // Center align text
+                            // );
+                          } else {
+                            return const Text(
+                              // Display error message if index is out of range
+                              'Can not identify the question',
+                              textAlign: TextAlign.center, // Center align text
+                            );
+                          }
+                        }
+                      }
+
+                      // Handle other snapshot states
+                      if (snapshot.hasError) {
+                        return Text(
+                          // Display error message
+                          'Error: ${snapshot.error}',
+                          textAlign: TextAlign.center, // Center align text
+                        );
+                      } else {
+                        return Container();
+                      }
+                    },
+                  ),
+
                   SizedBox(height: screenSize.height * 0.0355), // Spacer
                 ],
               ),

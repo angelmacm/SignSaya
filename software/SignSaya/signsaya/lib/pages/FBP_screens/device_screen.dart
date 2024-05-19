@@ -246,7 +246,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
             ((isConnected(device) && _rssiMap[device] != null)
                 ? '${_rssiMap[device]!} dBm'
                 : ''),
-            style: Theme.of(context).textTheme.bodyText2)
+            style: Theme.of(context).textTheme.bodySmall)
       ],
     );
   }

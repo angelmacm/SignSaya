@@ -25,12 +25,12 @@ class CharacteristicTile extends StatefulWidget {
 
 
   // Static stream controller for sensor values.
-  // static StreamController<List<int>> _sensorValuesController =
-  //     StreamController<List<int>>.broadcast(); commented
+  static StreamController<List<int>> _sensorValuesController =
+      StreamController<List<int>>.broadcast();
 
   // Getter method to access the sensor values stream.
-  // static Stream<List<int>> get sensorValuesStream =>
-  //     _sensorValuesController.stream;  commented
+  static Stream<List<int>> get sensorValuesStream =>
+      _sensorValuesController.stream; 
 
   @override
   State<CharacteristicTile> createState() => _CharacteristicTileState();
@@ -55,8 +55,8 @@ class _CharacteristicTileState extends State<CharacteristicTile> {
       if (mounted) {
         setState(() {});
         // Add the value to the sensor values stream.
-        //CharacteristicTile._sensorValuesController.add(_value); commented
-        print(value); // Log the value.
+        CharacteristicTile._sensorValuesController.add(_value);
+        // print(value); // Log the value.
       }
     });
     Future.delayed(const Duration(seconds: 1), () {
