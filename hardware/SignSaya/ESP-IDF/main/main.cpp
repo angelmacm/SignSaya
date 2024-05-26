@@ -313,6 +313,7 @@ void bleChecker(void *pvParameters) {
 void aiInferenceFunc(void *pvParameters){
   uint8_t currentInferInput[INFERENCE_LENGTH*INFERENCE_FEATURES];
   Result_t aiResult;
+  uint8_t lastSent = 15;
   for(;;){
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     if(xQueueReceive(inferenceDataQueue, &currentInferInput, portMAX_DELAY) == pdPASS){
@@ -320,8 +321,10 @@ void aiInferenceFunc(void *pvParameters){
       // aiInstance.infer(&currentInferInput);
       aiResult = aiInstance.infer(currentInferInput);
       inferReady = true;
-      uint8_t tfPackage[2] = {aiResult.result, aiResult.confidence};
-      ble.tfWrite(tfPackage);
+      if(lastSent != aiResult.result){
+        uint8_t tfPackage[2] = {aiResult.result, aiResult.confidence};
+        ble.tfWrite(tfPackage);
+      }
     }
     vTaskDelay(1);
   }

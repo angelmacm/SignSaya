@@ -1,5 +1,5 @@
 // #define USE_SPI // 2.8kb Smaller than I2C / 
-// #define USE_ICM // 6.9kb bigger than MPU6050
+#define USE_ICM // 6.9kb bigger than MPU6050
 // #define USE_LOGGING // 2.8kb bigger than with no logging
 // #define USE_TFLITE
 #define USE_TRAIN
